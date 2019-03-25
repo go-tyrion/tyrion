@@ -3,21 +3,20 @@ package http
 import (
 	"fmt"
 	"net/http"
-	"time"
 )
 
 type Options struct {
-	IP           string
-	Port         int
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
+	IP   string
+	Port int
+	// ReadTimeout  time.Duration
+	// WriteTimeout time.Duration
 }
 
 type HandleFunc func(*Context)
 
 type HttpServer struct {
-	options *Options
-	router  *Router
+	opts   *Options
+	router *Router
 }
 
 func New() *HttpServer {
@@ -27,17 +26,18 @@ func New() *HttpServer {
 }
 
 // 初始化
-func (this *HttpServer) Init(options *Options) {
-	this.options = options
+func (this *HttpServer) Init(opts *Options) {
+	this.opts = opts
 }
 
+// 通过配置文件初始化
 func (this *HttpServer) InitByConfig(confFile string) {
-	this.options = this.resolveConfigToOptions(confFile)
+	this.opts = this.resolveConfigToOptions(confFile)
 }
 
 // http
 func (this *HttpServer) Run() error {
-	addr := fmt.Sprintf("%s:%d", this.options.IP, this.options.Port)
+	addr := fmt.Sprintf("%s:%d", this.opts.IP, this.opts.Port)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (this *HttpServer) Run() error {
 }
 
 // https
-func (this *HttpServer) RunAsTLS() error {
+func (this *HttpServer) RunTLS() error {
 
 	return nil
 }
