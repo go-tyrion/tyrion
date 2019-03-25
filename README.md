@@ -9,14 +9,14 @@ Tyrion 多功能 Golang 服务框架
 ### 功能
 
 **命令行**
-- cmd
+- cli
 
 **网络功能**
 - http
 - websocket
 - socket
 
-**相关驱动**
+**框架**
 - MySQL
 - Redis
 - ActiveMQ
@@ -26,7 +26,7 @@ Tyrion 多功能 Golang 服务框架
 **扩展功能**
 - 日志处理
 - 配置文件解析处理
-- 公共函数
+- util / tool公共函数
 - Http 客户端
 - Consul
 - Apollo 配置或 consul 配置
