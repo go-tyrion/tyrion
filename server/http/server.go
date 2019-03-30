@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+var (
+	// 常用默认参数
+	defaultHttpServerOpts = func() *Options {
+		return &Options{
+			Port: 3210,
+		}
+	}
+)
+
 type Options struct {
 	IP   string
 	Port int
@@ -21,25 +30,39 @@ type Options struct {
 type HandleFunc func(*Context)
 
 type HttpServer struct {
+	debug  bool
 	opts   *Options
 	router *Router
 	server *http.Server
-	addr   string
 }
 
 func New() *HttpServer {
-	return &HttpServer{
-		router: new(Router),
-		server: new(http.Server),
-	}
+	s := new(HttpServer)
+	s.router = new(Router)
+	s.server = new(http.Server)
+	return s
 }
 
 // 初始化
 func (s *HttpServer) Init(opts *Options) {
 	s.opts = opts
-	s.addr = fmt.Sprintf("%s:%d", s.opts.IP, s.opts.Port)
+	s.server.Addr = fmt.Sprintf("%s:%d", s.opts.IP, s.opts.Port)
 	s.server.ReadTimeout = s.opts.ReadTimeout
 	s.server.WriteTimeout = s.opts.WriteTimeout
+}
+
+func (s *HttpServer) optsInit(opts *Options) *Options {
+	if opts == nil {
+		return defaultHttpServerOpts()
+	}
+
+	o := *opts
+	o.IP = opts.IP
+	if o.Port <= 0 {
+		o.Port = defaultHttpServerOpts().Port
+	}
+
+	return &o
 }
 
 // 通过配置文件初始化
@@ -49,7 +72,7 @@ func (s *HttpServer) InitByConfig(confFile string) {
 
 // http
 func (s *HttpServer) Run() error {
-	s.server.Handler = s
+	// s.server.Handler = s
 	return s.server.ListenAndServe()
 }
 
