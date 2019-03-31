@@ -1,16 +1,21 @@
 package http
 
-import "net/http"
+type Router struct {
+	httpServer *HttpServer
+	handles    map[string][]HandleFunc
+}
 
-const (
-	GET  = "GET"
-	POST = "POST"
-)
+func NewRouter(app *HttpServer) *Router {
+	router := new(Router)
+	router.httpServer = app
+	router.handles = make(map[string][]HandleFunc)
+	return router
+}
 
-type Router struct{}
+func (r *Router) Add(method string, pattern string, handles []HandleFunc) {
+	r.handles[pattern] = handles
+}
 
-type HandFunc func(w http.ResponseWriter, r *http.Request)
-
-func (r *Router) Add(method string, pattern string, headers ...HandFunc) {
-
+func (r *Router) Get(pattern string) []HandleFunc {
+	return r.handles[pattern]
 }
