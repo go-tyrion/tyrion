@@ -76,6 +76,10 @@ func (s *HttpServer) InitByConfig(confFile string) {
 	s.Init(s.resolveConfigToOptions(confFile))
 }
 
+func (s *HttpServer) Log() *log.Logger {
+	return s.logger
+}
+
 // http
 func (s *HttpServer) Run() error {
 	s.server.Handler = s
