@@ -104,11 +104,19 @@ func (s *HttpServer) AddLogic(path string, logic string) {
 
 // 传统方式
 func (s *HttpServer) Get(pattern string, h ...HandleFunc) {
-	s.router.Add(http.MethodGet, pattern, h)
+	s.add(http.MethodGet, pattern, h)
 }
 
 func (s *HttpServer) Post(path string, h Context) {
 
+}
+
+func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {
+	wrapHandles := make([]HandleFunc, 0, len(handles))
+	for _, h := range handles {
+		wrapHandles = append(wrapHandles, WrapHandlerFunc(h))
+	}
+	s.router.Add(method, pattern, wrapHandles)
 }
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -117,12 +125,12 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	handles := s.router.Get(r.URL.Path)
 	if handles == nil {
-		return
+		ctx.handles = append(ctx.handles, defaultNotFound())
 	} else {
 		ctx.handles = append(ctx.handles, handles...)
 	}
 
-	ctx.Run()
+	ctx.Next()
 
 	s.pool.Put(ctx)
 }
@@ -133,6 +141,22 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ------------
 // 私有方法
+// default 404
+func defaultNotFound() HandleFunc {
+	return func(ctx *Context) {
+		ctx.String(404, "not found!")
+		ctx.Next()
+	}
+}
+
+// WrapHandleFunc wrap for context handler chain
+func WrapHandlerFunc(h HandleFunc) HandleFunc {
+	return func(c *Context) {
+		h(c)
+		c.Next()
+	}
+}
+
 func (s *HttpServer) resolveConfigToOptions(confFile string) *Options {
 
 	return nil

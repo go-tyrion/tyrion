@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -10,6 +11,7 @@ type Context struct {
 	Req        *http.Request
 	Resp       http.ResponseWriter
 	handles    []HandleFunc
+	step       int
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
@@ -24,13 +26,23 @@ func (ctx *Context) Reset(w http.ResponseWriter, r *http.Request) *Context {
 	ctx.Req = r
 	ctx.Resp = w
 	ctx.handles = make([]HandleFunc, 0)
+	ctx.step = 0
 	return ctx
 }
 
-func (ctx *Context) Run() {
-	for _, handle := range ctx.handles {
-		handle(ctx)
+func (ctx *Context) Next() {
+	if ctx.step >= len(ctx.handles) {
+		return
 	}
+
+	i := ctx.step
+	ctx.step++
+
+	ctx.handles[i](ctx)
+}
+
+func (ctx *Context) Log() *log.Logger {
+	return ctx.httpServer.Log()
 }
 
 func (ctx *Context) String(code int, text string) {
