@@ -1,6 +1,9 @@
 package http
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 type Context struct {
 	httpServer *HttpServer
@@ -31,7 +34,20 @@ func (ctx *Context) Run() {
 }
 
 func (ctx *Context) String(code int, text string) {
-	ctx.Resp.Header().Set("Content-Type", "text/html; charset-utf8")
+	ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
 	ctx.Resp.WriteHeader(code)
 	ctx.Resp.Write([]byte(text))
+}
+
+func (ctx *Context) Json(code int, v interface{}) {
+	var body []byte
+	var err error
+	if body, err = json.Marshal(v); err != nil {
+		ctx.httpServer.logger.Println(err)
+		return
+	}
+
+	ctx.Resp.WriteHeader(code)
+	ctx.Resp.Header().Set("Content-Type", "application/json; charset=utf-8")
+	ctx.Resp.Write(body)
 }
