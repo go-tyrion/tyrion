@@ -32,7 +32,7 @@ var (
 	}
 )
 
-type HandleFunc func(*Context)
+type HandleFunc func(ctx *Context)
 
 type HttpServer struct {
 	debug  bool
@@ -133,6 +133,10 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.Next()
 
 	s.pool.Put(ctx)
+}
+
+func (s *HttpServer) Stop() error {
+	return s.server.Close()
 }
 
 // DI
