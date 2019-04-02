@@ -8,23 +8,23 @@ import (
 
 type Context struct {
 	httpServer *HttpServer
-	Req        *http.Request
-	Resp       http.ResponseWriter
+	req        *http.Request
+	resp       http.ResponseWriter
 	handles    []HandleFunc
 	step       int
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request) *Context {
 	ctx := new(Context)
-	ctx.Req = r
-	ctx.Resp = w
+	ctx.req = r
+	ctx.resp = w
 	ctx.handles = make([]HandleFunc, 0)
 	return ctx
 }
 
 func (ctx *Context) Reset(w http.ResponseWriter, r *http.Request) *Context {
-	ctx.Req = r
-	ctx.Resp = w
+	ctx.req = r
+	ctx.resp = w
 	ctx.handles = make([]HandleFunc, 0)
 	ctx.step = 0
 	return ctx
@@ -50,9 +50,9 @@ func (ctx *Context) Break() {
 }
 
 func (ctx *Context) String(code int, text string) {
-	ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Resp.WriteHeader(code)
-	ctx.Resp.Write([]byte(text))
+	ctx.resp.Header().Set("Content-Type", "text/html; charset=utf-8")
+	ctx.resp.WriteHeader(code)
+	ctx.resp.Write([]byte(text))
 }
 
 func (ctx *Context) OkString(text string) {
@@ -67,9 +67,9 @@ func (ctx *Context) JSON(code int, v interface{}) {
 		return
 	}
 
-	ctx.Resp.WriteHeader(code)
-	ctx.Resp.Header().Set("Content-Type", "application/json; charset=utf-8")
-	ctx.Resp.Write(body)
+	ctx.resp.WriteHeader(code)
+	ctx.resp.Header().Set("Content-Type", "application/json; charset=utf-8")
+	ctx.resp.Write(body)
 }
 
 func (ctx *Context) OkJSON(v interface{}) {
@@ -78,18 +78,18 @@ func (ctx *Context) OkJSON(v interface{}) {
 
 // 获取 Header
 func (ctx *Context) GetHeader(key string) string {
-	return ctx.Req.Header.Get(key)
+	return ctx.req.Header.Get(key)
 }
 
 // 设置 Header
 func (ctx *Context) SetHeader(key string, value string) {
-	ctx.Resp.Header().Set(key, value)
+	ctx.resp.Header().Set(key, value)
 }
 
 func (ctx *Context) Get(key string) string {
-	return ctx.Req.URL.Query().Get(key)
+	return ctx.req.URL.Query().Get(key)
 }
 
 func (ctx *Context) Post(key string) interface{} {
-	return ctx.Req.PostForm.Get(key)
+	return ctx.req.PostForm.Get(key)
 }
