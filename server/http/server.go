@@ -21,6 +21,10 @@ type Options struct {
 	TLSKeyFile  string
 }
 
+const (
+	MaxMultipartSize = 30 << 20
+)
+
 var (
 	// 常用默认参数
 	defaultHttpServerOpts = func() *Options {
@@ -35,12 +39,13 @@ var (
 type HandleFunc func(ctx *Context)
 
 type HttpServer struct {
-	debug  bool
-	opts   *Options
-	router *Router
-	server *http.Server
-	logger *log.Logger
-	pool   sync.Pool
+	debug            bool
+	opts             *Options
+	router           *Router
+	server           *http.Server
+	logger           *log.Logger
+	pool             sync.Pool
+	maxMultipartSize int64
 }
 
 func New() *HttpServer {
@@ -50,9 +55,10 @@ func New() *HttpServer {
 	app.logger = log.New(os.Stdout, "[Tyrion] ", log.LstdFlags)
 	app.pool = sync.Pool{
 		New: func() interface{} {
-			return NewContext(nil, nil)
+			return NewContext(nil, nil, app)
 		},
 	}
+	app.maxMultipartSize = MaxMultipartSize
 	return app
 }
 

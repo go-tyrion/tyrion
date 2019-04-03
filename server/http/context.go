@@ -6,6 +6,11 @@ import (
 	"net/http"
 )
 
+const (
+	HeaderApplicationJsonCharsetUTF8 = "application/json; charset=utf-8"
+	HeaderTextHtmlCharsetUTF8        = "text/html; charset=utf-8"
+)
+
 type Context struct {
 	httpServer *HttpServer
 	req        *http.Request
@@ -14,8 +19,9 @@ type Context struct {
 	step       int
 }
 
-func NewContext(w http.ResponseWriter, r *http.Request) *Context {
+func NewContext(w http.ResponseWriter, r *http.Request, app *HttpServer) *Context {
 	ctx := new(Context)
+	ctx.httpServer = app
 	ctx.req = r
 	ctx.resp = w
 	ctx.handles = make([]HandleFunc, 0)
@@ -50,9 +56,10 @@ func (ctx *Context) Break() {
 }
 
 func (ctx *Context) String(code int, text string) {
-	ctx.resp.Header().Set("Content-Type", "text/html; charset=utf-8")
 	ctx.resp.WriteHeader(code)
-	ctx.resp.Write([]byte(text))
+	ctx.resp.Header().Set("Content-Type", HeaderTextHtmlCharsetUTF8)
+	_, err := ctx.resp.Write([]byte(text))
+	ctx.Error(err)
 }
 
 func (ctx *Context) OkString(text string) {
@@ -68,8 +75,27 @@ func (ctx *Context) JSON(code int, v interface{}) {
 	}
 
 	ctx.resp.WriteHeader(code)
-	ctx.resp.Header().Set("Content-Type", "application/json; charset=utf-8")
-	ctx.resp.Write(body)
+	ctx.resp.Header().Set("Content-Type", HeaderApplicationJsonCharsetUTF8)
+	_, err = ctx.resp.Write(body)
+	ctx.Error(err)
+}
+
+func (ctx *Context) PostArray(key string) ([]string, bool) {
+	req := ctx.req
+	if err := req.ParseMultipartForm(ctx.httpServer.maxMultipartSize); err != nil {
+		if err != http.ErrNotMultipart {
+			ctx.Error(err)
+		}
+	}
+	if values := req.PostForm[key]; len(values) > 0 {
+		return values, true
+	}
+	if req.MultipartForm != nil && req.MultipartForm.File != nil {
+		if values := req.MultipartForm.Value[key]; len(values) > 0 {
+			return values, true
+		}
+	}
+	return []string{}, false
 }
 
 func (ctx *Context) OkJSON(v interface{}) {
@@ -90,6 +116,16 @@ func (ctx *Context) Get(key string) string {
 	return ctx.req.URL.Query().Get(key)
 }
 
-func (ctx *Context) Post(key string) interface{} {
-	return ctx.req.PostForm.Get(key)
+func (ctx *Context) Post(key string) string {
+	if values, exists := ctx.PostArray(key); exists {
+		return values[0]
+	}
+	return ""
+}
+
+func (ctx *Context) Error(err error) {
+	if err == nil {
+		return
+	}
+	ctx.Log().Println("Err:", err)
 }
