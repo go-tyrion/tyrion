@@ -22,7 +22,7 @@ func NewContext(w http.ResponseWriter, r *http.Request) *Context {
 	return ctx
 }
 
-func (ctx *Context) Reset(w http.ResponseWriter, r *http.Request) *Context {
+func (ctx *Context) reset(w http.ResponseWriter, r *http.Request) *Context {
 	ctx.req = r
 	ctx.resp = w
 	ctx.handles = make([]HandleFunc, 0)

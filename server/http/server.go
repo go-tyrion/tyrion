@@ -121,7 +121,7 @@ func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := s.pool.Get().(*Context)
-	ctx.Reset(w, r)
+	ctx.reset(w, r)
 
 	handles := s.router.Get(r.URL.Path)
 	if handles == nil {
