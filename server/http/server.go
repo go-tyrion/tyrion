@@ -22,7 +22,7 @@ type Options struct {
 }
 
 const (
-	MaxMultipartSize = 30 << 20
+	DefaultMaxPostMemory = 30 << 20 // max form multipart memory size, default 32M
 )
 
 var (
@@ -39,13 +39,13 @@ var (
 type HandleFunc func(ctx *Context)
 
 type HttpServer struct {
-	debug            bool
-	opts             *Options
-	router           *Router
-	server           *http.Server
-	logger           *log.Logger
-	pool             sync.Pool
-	maxMultipartSize int64
+	debug         bool
+	opts          *Options
+	router        *Router
+	server        *http.Server
+	logger        *log.Logger
+	pool          sync.Pool
+	maxPostMemory int64
 }
 
 func New() *HttpServer {
@@ -58,7 +58,7 @@ func New() *HttpServer {
 			return NewContext(nil, nil, app)
 		},
 	}
-	app.maxMultipartSize = MaxMultipartSize
+	app.maxPostMemory = DefaultMaxPostMemory
 	return app
 }
 
@@ -84,6 +84,10 @@ func (s *HttpServer) InitByConfig(confFile string) {
 
 func (s *HttpServer) Log() *log.Logger {
 	return s.logger
+}
+
+func (s *HttpServer) GetMaxPostMemory() int64 {
+	return s.maxPostMemory
 }
 
 // http
@@ -161,9 +165,9 @@ func defaultNotFound() HandleFunc {
 
 // WrapHandleFunc wrap for context handler chain
 func WrapHandlerFunc(h HandleFunc) HandleFunc {
-	return func(c *Context) {
-		h(c)
-		c.Next()
+	return func(ctx *Context) {
+		h(ctx)
+		ctx.Next()
 	}
 }
 

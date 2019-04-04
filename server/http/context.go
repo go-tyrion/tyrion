@@ -82,7 +82,7 @@ func (ctx *Context) JSON(code int, v interface{}) {
 
 func (ctx *Context) PostArray(key string) ([]string, bool) {
 	req := ctx.req
-	if err := req.ParseMultipartForm(ctx.httpServer.maxMultipartSize); err != nil {
+	if err := req.ParseMultipartForm(ctx.httpServer.GetMaxPostMemory()); err != nil {
 		if err != http.ErrNotMultipart {
 			ctx.Error(err)
 		}
