@@ -5,11 +5,11 @@ type Router struct {
 	handles    map[string][]HandleFunc
 }
 
-func NewRouter(app *HttpServer) *Router {
-	router := new(Router)
-	router.httpServer = app
-	router.handles = make(map[string][]HandleFunc)
-	return router
+func NewRouter(server *HttpServer) *Router {
+	r := new(Router)
+	r.httpServer = server
+	r.handles = make(map[string][]HandleFunc)
+	return r
 }
 
 func (r *Router) Add(method string, pattern string, handles []HandleFunc) {

@@ -20,71 +20,71 @@ type Context struct {
 }
 
 func NewContext(w http.ResponseWriter, r *http.Request, app *HttpServer) *Context {
-	ctx := new(Context)
-	ctx.httpServer = app
-	ctx.req = r
-	ctx.resp = w
-	ctx.handles = make([]HandleFunc, 0)
-	return ctx
+	c := new(Context)
+	c.httpServer = app
+	c.req = r
+	c.resp = w
+	c.handles = make([]HandleFunc, 0)
+	return c
 }
 
-func (ctx *Context) reset(w http.ResponseWriter, r *http.Request) *Context {
-	ctx.req = r
-	ctx.resp = w
-	ctx.handles = make([]HandleFunc, 0)
-	ctx.step = 0
-	return ctx
+func (c *Context) reset(w http.ResponseWriter, r *http.Request) *Context {
+	c.req = r
+	c.resp = w
+	c.handles = make([]HandleFunc, 0)
+	c.step = 0
+	return c
 }
 
-func (ctx *Context) Next() {
-	if ctx.step >= len(ctx.handles) {
+func (c *Context) Next() {
+	if c.step >= len(c.handles) {
 		return
 	}
 
-	i := ctx.step
-	ctx.step++
+	i := c.step
+	c.step++
 
-	ctx.handles[i](ctx)
+	c.handles[i](c)
 }
 
-func (ctx *Context) Log() *log.Logger {
-	return ctx.httpServer.Log()
+func (c *Context) Log() *log.Logger {
+	return c.httpServer.Log()
 }
 
-func (ctx *Context) Break() {
-	ctx.step = len(ctx.handles)
+func (c *Context) Break() {
+	c.step = len(c.handles)
 }
 
-func (ctx *Context) String(code int, text string) {
-	ctx.resp.WriteHeader(code)
-	ctx.resp.Header().Set("Content-Type", HeaderTextHtmlCharsetUTF8)
-	_, err := ctx.resp.Write([]byte(text))
-	ctx.Error(err)
+func (c *Context) String(code int, text string) {
+	c.resp.WriteHeader(code)
+	c.resp.Header().Set("Content-Type", HeaderTextHtmlCharsetUTF8)
+	_, err := c.resp.Write([]byte(text))
+	c.Error(err)
 }
 
-func (ctx *Context) OkString(text string) {
-	ctx.String(http.StatusOK, text)
+func (c *Context) OkString(text string) {
+	c.String(http.StatusOK, text)
 }
 
-func (ctx *Context) JSON(code int, v interface{}) {
+func (c *Context) JSON(code int, v interface{}) {
 	var body []byte
 	var err error
 	if body, err = json.Marshal(v); err != nil {
-		ctx.httpServer.logger.Println(err)
+		c.httpServer.logger.Println(err)
 		return
 	}
 
-	ctx.resp.WriteHeader(code)
-	ctx.resp.Header().Set("Content-Type", HeaderApplicationJsonCharsetUTF8)
-	_, err = ctx.resp.Write(body)
-	ctx.Error(err)
+	c.resp.WriteHeader(code)
+	c.resp.Header().Set("Content-Type", HeaderApplicationJsonCharsetUTF8)
+	_, err = c.resp.Write(body)
+	c.Error(err)
 }
 
-func (ctx *Context) PostArray(key string) ([]string, bool) {
-	req := ctx.req
-	if err := req.ParseMultipartForm(ctx.httpServer.GetMaxPostMemory()); err != nil {
+func (c *Context) PostArray(key string) ([]string, bool) {
+	req := c.req
+	if err := req.ParseMultipartForm(c.httpServer.GetMaxPostMemory()); err != nil {
 		if err != http.ErrNotMultipart {
-			ctx.Error(err)
+			c.Error(err)
 		}
 	}
 	if values := req.PostForm[key]; len(values) > 0 {
@@ -98,34 +98,34 @@ func (ctx *Context) PostArray(key string) ([]string, bool) {
 	return []string{}, false
 }
 
-func (ctx *Context) OkJSON(v interface{}) {
-	ctx.JSON(http.StatusOK, v)
+func (c *Context) OkJSON(v interface{}) {
+	c.JSON(http.StatusOK, v)
 }
 
 // 获取 Header
-func (ctx *Context) GetHeader(key string) string {
-	return ctx.req.Header.Get(key)
+func (c *Context) GetHeader(key string) string {
+	return c.req.Header.Get(key)
 }
 
 // 设置 Header
-func (ctx *Context) SetHeader(key string, value string) {
-	ctx.resp.Header().Set(key, value)
+func (c *Context) SetHeader(key string, value string) {
+	c.resp.Header().Set(key, value)
 }
 
-func (ctx *Context) Get(key string) string {
-	return ctx.req.URL.Query().Get(key)
+func (c *Context) Get(key string) string {
+	return c.req.URL.Query().Get(key)
 }
 
-func (ctx *Context) Post(key string) string {
-	if values, exists := ctx.PostArray(key); exists {
+func (c *Context) Post(key string) string {
+	if values, exists := c.PostArray(key); exists {
 		return values[0]
 	}
 	return ""
 }
 
-func (ctx *Context) Error(err error) {
+func (c *Context) Error(err error) {
 	if err == nil {
 		return
 	}
-	ctx.Log().Println("Err:", err)
+	c.Log().Println("Err:", err)
 }

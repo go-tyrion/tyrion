@@ -36,7 +36,7 @@ var (
 	}
 )
 
-type HandleFunc func(ctx *Context)
+type HandleFunc func(c *Context)
 
 type HttpServer struct {
 	debug         bool
@@ -49,24 +49,24 @@ type HttpServer struct {
 }
 
 func New() *HttpServer {
-	app := new(HttpServer)
-	app.router = NewRouter(app)
-	app.server = new(http.Server)
-	app.logger = log.New(os.Stdout, "[Tyrion] ", log.LstdFlags)
-	app.pool = sync.Pool{
+	s := new(HttpServer)
+	s.router = NewRouter(s)
+	s.server = new(http.Server)
+	s.logger = log.New(os.Stdout, "[Tyrion] ", log.LstdFlags)
+	s.pool = sync.Pool{
 		New: func() interface{} {
-			return NewContext(nil, nil, app)
+			return NewContext(nil, nil, s)
 		},
 	}
-	app.maxPostMemory = DefaultMaxPostMemory
-	return app
+	s.maxPostMemory = DefaultMaxPostMemory
+	return s
 }
 
 // 使用 Default 默认配置
 func Default() *HttpServer {
-	app := New()
-	app.Init(defaultHttpServerOpts())
-	return app
+	s := New()
+	s.Init(defaultHttpServerOpts())
+	return s
 }
 
 // 通过 Init 方法初始化
@@ -130,19 +130,19 @@ func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {
 }
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := s.pool.Get().(*Context)
-	ctx.reset(w, r)
+	c := s.pool.Get().(*Context)
+	c.reset(w, r)
 
 	handles := s.router.Get(r.URL.Path)
 	if handles == nil {
-		ctx.handles = append(ctx.handles, defaultNotFound())
+		c.handles = append(c.handles, defaultNotFound())
 	} else {
-		ctx.handles = append(ctx.handles, handles...)
+		c.handles = append(c.handles, handles...)
 	}
 
-	ctx.Next()
+	c.Next()
 
-	s.pool.Put(ctx)
+	s.pool.Put(c)
 }
 
 func (s *HttpServer) Stop() error {
@@ -157,17 +157,17 @@ func (s *HttpServer) Stop() error {
 // 私有方法
 // default 404
 func defaultNotFound() HandleFunc {
-	return func(ctx *Context) {
-		ctx.String(404, "not found!")
-		ctx.Next()
+	return func(c *Context) {
+		c.String(404, "not found!")
+		c.Next()
 	}
 }
 
 // WrapHandleFunc wrap for context handler chain
 func WrapHandlerFunc(h HandleFunc) HandleFunc {
-	return func(ctx *Context) {
-		h(ctx)
-		ctx.Next()
+	return func(c *Context) {
+		h(c)
+		c.Next()
 	}
 }
 
