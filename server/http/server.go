@@ -117,8 +117,36 @@ func (s *HttpServer) Get(pattern string, h ...HandleFunc) {
 	s.add(http.MethodGet, pattern, h)
 }
 
-func (s *HttpServer) Post(path string, h Context) {
+func (s *HttpServer) Head(pattern string, h ...HandleFunc) {
+	s.add(http.MethodHead, pattern, h)
+}
 
+func (s *HttpServer) Post(pattern string, h ...HandleFunc) {
+	s.add(http.MethodPost, pattern, h)
+}
+
+func (s *HttpServer) Put(pattern string, h ...HandleFunc) {
+	s.add(http.MethodPut, pattern, h)
+}
+
+func (s *HttpServer) Patch(pattern string, h ...HandleFunc) {
+	s.add(http.MethodPatch, pattern, h)
+}
+
+func (s *HttpServer) Delete(pattern string, h ...HandleFunc) {
+	s.add(http.MethodDelete, pattern, h)
+}
+
+func (s *HttpServer) Connect(pattern string, h ...HandleFunc) {
+	s.add(http.MethodConnect, pattern, h)
+}
+
+func (s *HttpServer) Options(pattern string, h ...HandleFunc) {
+	s.add(http.MethodConnect, pattern, h)
+}
+
+func (s *HttpServer) Trace(pattern string, h ...HandleFunc) {
+	s.add(http.MethodTrace, pattern, h)
 }
 
 func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {
@@ -133,16 +161,21 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := s.pool.Get().(*Context)
 	c.reset(w, r)
 
-	handles := s.router.Get(r.URL.Path)
+	defer s.pool.Put(c)
+
+	if _, ok := HttpMethods[r.Method]; ok {
+		c.handles = append(c.handles, defaultMethodNotAllowd())
+		return
+	}
+
+	handles := s.router.Get(r.Method, r.URL.Path)
 	if handles == nil {
 		c.handles = append(c.handles, defaultNotFound())
 	} else {
-		c.handles = append(c.handles, handles...)
+		c.handles = handles
 	}
 
 	c.Next()
-
-	s.pool.Put(c)
 }
 
 func (s *HttpServer) Stop() error {
@@ -159,6 +192,13 @@ func (s *HttpServer) Stop() error {
 func defaultNotFound() HandleFunc {
 	return func(c *Context) {
 		c.String(404, "not found!")
+		c.Next()
+	}
+}
+
+func defaultMethodNotAllowd() HandleFunc {
+	return func(c *Context) {
+		c.String(405, "method not allowed")
 		c.Next()
 	}
 }

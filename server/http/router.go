@@ -1,21 +1,58 @@
 package http
 
+import "strings"
+
+const (
+	GET = iota
+	HEAD
+	POST
+	PUT
+	PATCH
+	DELETE
+	CONNECT
+	OPTIONS
+	TRACE
+)
+
+var (
+	HttpMethods = map[string]int{
+		"GET":     GET,
+		"HEAD":    HEAD,
+		"POST":    POST,
+		"PUT":     PUT,
+		"PATCH":   PATCH,
+		"DELETE":  DELETE,
+		"CONNECT": CONNECT,
+		"OPTIONS": OPTIONS,
+		"TRACE":   TRACE,
+	}
+)
+
 type Router struct {
-	httpServer *HttpServer
-	handles    map[string][]HandleFunc
+	httpServer      *HttpServer
+	handles         map[int]map[string][]HandleFunc
+	ignoreLastSlash bool
 }
 
 func NewRouter(server *HttpServer) *Router {
 	r := new(Router)
 	r.httpServer = server
-	r.handles = make(map[string][]HandleFunc)
+	r.handles = make(map[int]map[string][]HandleFunc)
+	for _, method := range HttpMethods {
+		r.handles[method] = make(map[string][]HandleFunc)
+	}
 	return r
 }
 
 func (r *Router) Add(method string, pattern string, handles []HandleFunc) {
-	r.handles[pattern] = handles
+	pattern = strings.TrimRight(pattern, "/")
+	r.handles[HttpMethods[method]][pattern] = handles
 }
 
-func (r *Router) Get(pattern string) []HandleFunc {
-	return r.handles[pattern]
+func (r *Router) Get(method string, pattern string) []HandleFunc {
+	if r.ignoreLastSlash {
+		pattern = strings.TrimRight(pattern, "/")
+	}
+
+	return r.handles[HttpMethods[method]][pattern]
 }
