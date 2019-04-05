@@ -54,5 +54,9 @@ func (r *Router) Get(method string, pattern string) []HandleFunc {
 		pattern = strings.TrimRight(pattern, "/")
 	}
 
-	return r.handles[HttpMethods[method]][pattern]
+	if handles, exists := r.handles[HttpMethods[method]][pattern]; exists {
+		return handles
+	}
+
+	return nil
 }
