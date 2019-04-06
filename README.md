@@ -8,14 +8,14 @@ Tyrion 多功能 Golang 服务框架
 ### 功能
 
 **命令行**
-- cli
+- cmd
 
 **网络功能**
 - http
 - websocket
 - socket
 
-**框架**
+**驱动**
 - MySQL
 - Redis(Cluster)
 - ActiveMQ
@@ -36,7 +36,7 @@ Tyrion 多功能 Golang 服务框架
 **后期**
 - 前端框架支持
 
-### 目录结构
+### 项目最佳实践
 
 ```$xslt
 |- project/
