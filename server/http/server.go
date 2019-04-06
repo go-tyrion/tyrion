@@ -11,14 +11,13 @@ import (
 )
 
 type Options struct {
-	IP   string
-	Port int
-
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-
-	TLSCertFile string
-	TLSKeyFile  string
+	IP                  string
+	Port                int
+	ReadTimeout         time.Duration
+	WriteTimeout        time.Duration
+	TLSCertFile         string
+	TLSKeyFile          string
+	IgnorePathLastSlash bool
 }
 
 const (
@@ -154,7 +153,7 @@ func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {
 	for _, h := range handles {
 		wrapHandles = append(wrapHandles, WrapHandlerFunc(h))
 	}
-	s.router.Add(method, pattern, wrapHandles)
+	s.router.Register(method, pattern, wrapHandles)
 }
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +162,7 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer s.pool.Put(c)
 
-	if _, ok := HttpMethods[r.Method]; ok {
+	if _, ok := HttpMethods[r.Method]; !ok {
 		c.handles = append(c.handles, defaultMethodNotAllowd())
 		return
 	}

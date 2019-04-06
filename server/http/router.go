@@ -1,6 +1,8 @@
 package http
 
-import "strings"
+import (
+	"strings"
+)
 
 const (
 	GET = iota
@@ -29,9 +31,8 @@ var (
 )
 
 type Router struct {
-	httpServer      *HttpServer
-	handles         map[int]map[string][]HandleFunc
-	ignoreLastSlash bool
+	httpServer *HttpServer
+	handles    map[int]map[string][]HandleFunc
 }
 
 func NewRouter(server *HttpServer) *Router {
@@ -44,13 +45,13 @@ func NewRouter(server *HttpServer) *Router {
 	return r
 }
 
-func (r *Router) Add(method string, pattern string, handles []HandleFunc) {
+func (r *Router) Register(method string, pattern string, handles []HandleFunc) {
 	pattern = strings.TrimRight(pattern, "/")
 	r.handles[HttpMethods[method]][pattern] = handles
 }
 
 func (r *Router) Get(method string, pattern string) []HandleFunc {
-	if r.ignoreLastSlash {
+	if r.httpServer.opts.IgnorePathLastSlash {
 		pattern = strings.TrimRight(pattern, "/")
 	}
 
