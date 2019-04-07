@@ -28,6 +28,25 @@ var (
 		"OPTIONS": OPTIONS,
 		"TRACE":   TRACE,
 	}
+	HttpStatus = map[int]string{
+		200: "OK",
+		302: "Found",
+		304: "Not modified",
+		400: "Bad request",
+		401: "Unauthorized",
+		403: "Forbidden",
+		404: "Not found",
+		405: "Method not allowed",
+		406: "Not acceptable",
+		408: "Request timeout",
+		409: "Conflict",
+		500: "Internal server error",
+		502: "Bad gateway",
+		503: "Service unavailable",
+		504: "Gateway timeout",
+		598: "Network read timeout error",
+		599: "Network connect timeout error",
+	}
 )
 
 type Router struct {
