@@ -138,13 +138,13 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer s.pool.Put(c)
 
 	if _, ok := HttpMethods[r.Method]; !ok {
-		c.handles = append(c.handles, defaultMethodNotAllowd())
+		c.handles = append(c.handles, catchHandles(405))
 		return
 	}
 
 	handles := s.router.Get(r.Method, r.URL.Path)
 	if handles == nil {
-		c.handles = append(c.handles, defaultNotFound())
+		c.handles = append(c.handles, catchHandles(404))
 	} else {
 		c.handles = handles
 	}
@@ -163,16 +163,10 @@ func (s *HttpServer) Stop() error {
 // ------------
 // 私有方法
 // default 404
-func defaultNotFound() HandleFunc {
-	return func(c *Context) {
-		c.String(404, "not found!")
-		c.Next()
-	}
-}
 
-func defaultMethodNotAllowd() HandleFunc {
+func catchHandles(code int) HandleFunc {
 	return func(c *Context) {
-		c.String(405, "method not allowed")
+		c.String(code, HttpStatus[code])
 		c.Next()
 	}
 }
@@ -183,9 +177,4 @@ func WrapHandlerFunc(h HandleFunc) HandleFunc {
 		h(c)
 		c.Next()
 	}
-}
-
-func (s *HttpServer) resolveConfigToOptions(confFile string) *Options {
-
-	return nil
 }
