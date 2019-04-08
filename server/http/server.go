@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"sync"
 )
 
@@ -82,8 +83,17 @@ func (s *HttpServer) RunTLS() error {
 
 // ------------
 // 类型 bisinessServer模式
-func (s *HttpServer) AddLogic(path string, logic string) {
+func (s *HttpServer) AddLogic(prefix string, logic Logic) {
+	typeOfLogic := reflect.TypeOf(logic)
+	for i := 0; i < typeOfLogic.NumMethod(); i++ {
+		funcName := typeOfLogic.Method(i).Name
+		// todo 还要判断首字母的情况
+		if "Init" == funcName {
+			continue
+		}
 
+		fmt.Println("typeOf:", typeOfLogic.Method(i))
+	}
 }
 
 // 传统方式
@@ -116,7 +126,7 @@ func (s *HttpServer) Connect(pattern string, h ...HandleFunc) {
 }
 
 func (s *HttpServer) Options(pattern string, h ...HandleFunc) {
-	s.add(http.MethodConnect, pattern, h)
+	s.add(http.MethodOptions, pattern, h)
 }
 
 func (s *HttpServer) Trace(pattern string, h ...HandleFunc) {
