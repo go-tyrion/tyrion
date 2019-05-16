@@ -84,15 +84,25 @@ func (s *HttpServer) RunTLS() error {
 // ------------
 // 类型 bisinessServer模式
 func (s *HttpServer) AddLogic(prefix string, logic Logic) {
-	typeOfLogic := reflect.TypeOf(logic)
-	for i := 0; i < typeOfLogic.NumMethod(); i++ {
-		funcName := typeOfLogic.Method(i).Name
-		// todo 还要判断首字母的情况
+	t := reflect.TypeOf(logic)
+	v := reflect.ValueOf(logic)
+	for i := 0; i < t.NumMethod(); i++ {
+		funcName := t.Method(i).Name
 		if "Init" == funcName {
 			continue
 		}
 
-		fmt.Println("typeOf:", typeOfLogic.Method(i))
+		// todo 1 要判断首字母的情况
+		// todo 2 需要判断方法签名情况
+
+		s.add(http.MethodGet, prefix+"/"+funcName, []HandleFunc{s.wrapLogic(v.Method(i))})
+	}
+}
+
+func (s *HttpServer) wrapLogic(v reflect.Value) HandleFunc {
+	return func(c *Context) {
+		v.Call([]reflect.Value{reflect.ValueOf(c)})
+		c.Next()
 	}
 }
 
