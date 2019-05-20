@@ -25,7 +25,7 @@ Tyrion 多功能 Golang 服务框架
 **扩展功能**
 - 日志处理
 - 配置文件解析处理
-- util / tool公共函数
+- util / tool / kit公共函数
 - Http 客户端
 - Consul
 - Apollo 配置或 consul 配置

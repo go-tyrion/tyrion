@@ -92,10 +92,7 @@ func (s *HttpServer) AddLogic(prefix string, logic Logic) {
 			continue
 		}
 
-		// todo 1 要判断首字母的情况
-		// todo 2 需要判断方法签名情况
-
-		s.add(http.MethodGet, prefix+"/"+funcName, []HandleFunc{s.wrapLogic(v.Method(i))})
+		s.Any(prefix+"/"+funcName, []HandleFunc{s.wrapLogic(v.Method(i))}...)
 	}
 }
 
@@ -107,12 +104,15 @@ func (s *HttpServer) wrapLogic(v reflect.Value) HandleFunc {
 }
 
 // 传统方式
-func (s *HttpServer) Get(pattern string, h ...HandleFunc) {
+func (s *HttpServer) Any(pattern string, h ...HandleFunc) {
 	s.add(http.MethodGet, pattern, h)
+	s.add(http.MethodPost, pattern, h)
+	s.add(http.MethodPut, pattern, h)
+	s.add(http.MethodDelete, pattern, h)
 }
 
-func (s *HttpServer) Head(pattern string, h ...HandleFunc) {
-	s.add(http.MethodHead, pattern, h)
+func (s *HttpServer) Get(pattern string, h ...HandleFunc) {
+	s.add(http.MethodGet, pattern, h)
 }
 
 func (s *HttpServer) Post(pattern string, h ...HandleFunc) {
@@ -123,24 +123,8 @@ func (s *HttpServer) Put(pattern string, h ...HandleFunc) {
 	s.add(http.MethodPut, pattern, h)
 }
 
-func (s *HttpServer) Patch(pattern string, h ...HandleFunc) {
-	s.add(http.MethodPatch, pattern, h)
-}
-
 func (s *HttpServer) Delete(pattern string, h ...HandleFunc) {
 	s.add(http.MethodDelete, pattern, h)
-}
-
-func (s *HttpServer) Connect(pattern string, h ...HandleFunc) {
-	s.add(http.MethodConnect, pattern, h)
-}
-
-func (s *HttpServer) Options(pattern string, h ...HandleFunc) {
-	s.add(http.MethodOptions, pattern, h)
-}
-
-func (s *HttpServer) Trace(pattern string, h ...HandleFunc) {
-	s.add(http.MethodTrace, pattern, h)
 }
 
 func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {

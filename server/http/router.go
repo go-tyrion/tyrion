@@ -65,11 +65,12 @@ func NewRouter(server *HttpServer) *Router {
 }
 
 func (r *Router) Register(method string, pattern string, handles []HandleFunc) {
-	pattern = strings.TrimRight(pattern, "/")
+	pattern = strings.TrimRight(strings.ToLower(pattern), "/")
 	r.handles[HttpMethods[method]][pattern] = handles
 }
 
 func (r *Router) Get(method string, pattern string) []HandleFunc {
+	pattern = strings.ToLower(pattern)
 	if r.httpServer.opts.IgnorePathLastSlash {
 		pattern = strings.TrimRight(pattern, "/")
 	}
