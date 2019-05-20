@@ -171,7 +171,7 @@ func (s *HttpServer) Stop() error {
 func catchHandles(code int) HandleFunc {
 	return func(c *Context) {
 		c.String(code, HttpStatus[code])
-		c.Next()
+		c.Break()
 	}
 }
 
