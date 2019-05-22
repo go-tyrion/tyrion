@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-const ENV = "APP_ENV"
+const BaseConfigPath = "config/"
 
 var cfg *Config
 
@@ -16,7 +16,7 @@ func init() {
 
 func newConfig() *Config {
 	return &Config{
-		env:   os.Getenv(ENV),
+		env:   os.Getenv("APP_ENV"),
 		cache: make(map[string]*ini.Section),
 	}
 }
@@ -33,7 +33,7 @@ func (c *Config) getKey(file string) *ini.Section {
 		return k
 	}
 
-	f, err := ini.Load(file)
+	f, err := ini.Load(BaseConfigPath + file)
 	if err != nil {
 		panic(err)
 	}
