@@ -1,9 +1,9 @@
 package log
 
 import (
+	"fmt"
 	"log"
 	"os"
-	"strings"
 	"sync"
 )
 
@@ -15,8 +15,10 @@ import (
 // 5. 支持日志切分
 // 6. traceID
 
+type LogLevel int
+
 const (
-	Ldebug = iota
+	Ldebug LogLevel = iota
 	Linfo
 	Lwarn
 	Lerror
@@ -53,6 +55,7 @@ const (
 )
 
 type File struct {
+	l      *log.Logger
 	file   string
 	handle *os.File
 }
@@ -68,28 +71,42 @@ func (f *File) GetHandle() *os.File {
 type logger struct {
 	mu sync.Mutex
 
-	distinguishFile bool             // 是否区分文件
-	file            *File            // 不区分文件时保存文件句柄
-	files           map[string]*File // 区分文件时保存文件句柄
+	// distinguishFile bool             // 是否区分文件
+	// file            *File            // 不区分文件时保存文件句柄
+	files map[int]*File // 区分文件时保存文件句柄
 
-	l        *log.Logger
-	level    int
+	level    LogLevel
 	rotation RotationType
 }
 
 func New() *logger {
-	return &logger{}
-}
-
-func (l *logger) init() {
-	l.files = make(map[string]*File)
-	for _, level := range levels {
-		l.files[strings.ToLower(level)] = new(File)
+	return &logger{
+		level: Ldebug,
+		files: make(map[int]*File),
 	}
 }
 
-func (l *logger) output(v []interface{}) {
+func (l *logger) init() {
+	for index, level := range levels {
+		f := new(File)
+		f.l = log.New(os.Stderr, "", log.LstdFlags)
+		f.file = level + ".log"
 
+		l.files[index] = new(File)
+	}
+}
+
+func (l *logger) output(level LogLevel, v []interface{}) {
+	if level < l.level { // 低于这个级别的日志不输出
+		return
+	}
+
+	vl := make([]interface{}, len(v)+2)
+	vl[0] = "[" + levels[level] + "]"
+	copy(vl[1:0], v)
+	vl[len(v)+1] = ""
+
+	l.files[int(level)].l.Output(4, fmt.Sprintln(vl...))
 }
 
 func (l *logger) rotate() {
@@ -106,12 +123,12 @@ func (l *logger) rotate() {
 
 // 是否分文件保存
 func (l *logger) DistinguishFile(dist bool) {
-	l.distinguishFile = dist
+	// l.distinguishFile = dist
 }
 
 // todo file handle
-func (l *logger) SetLevelFile(level int, file string) {
-	if len(levels) <= level {
+func (l *logger) SetLevelFile(level LogLevel, file string) {
+	if len(levels) <= int(level) {
 		h, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 		if err != nil {
 			log.Fatal(err)
@@ -124,12 +141,12 @@ func (l *logger) SetLevelFile(level int, file string) {
 		f.handle = h
 
 		l.mu.Lock()
-		l.files[levels[level]] = f
+		l.files[int(level)] = f
 		l.mu.Unlock()
 	}
 }
 
-func (l *logger) SetLevel(level int) {
+func (l *logger) SetLevel(level LogLevel) {
 	l.level = level
 }
 
@@ -137,7 +154,27 @@ func (l *logger) SetRotation(r RotationType) {
 	l.rotation = r
 }
 
+func (l *LogLevel) Debug(v ...interface{}) {
+
+}
+
 func (l *logger) Info(v ...interface{}) {
+
+}
+
+func (l *logger) Warn(v ...interface{}) {
+
+}
+
+func (l *logger) Error(v ...interface{}) {
+
+}
+
+func (l *logger) Panic(v ...interface{}) {
+
+}
+
+func (l *logger) Fatal(v ...interface{}) {
 
 }
 
@@ -150,6 +187,10 @@ func DistFile(files map[string]string) {
 
 func SetRotation(r RotationType) {
 	_log.SetRotation(r)
+}
+
+func SetLevel(level LogLevel) {
+	_log.SetLevel(level)
 }
 
 func Info(v ...interface{}) {
