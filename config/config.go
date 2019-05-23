@@ -55,6 +55,13 @@ func Strings(field, file, delim string) []string {
 }
 
 // Int get value for string
-func Int(field, file string) (int, error) {
-	return cfg.getKey(file).Key(field).Int()
+func Int(field, file string) int {
+	val, _ := cfg.getKey(file).Key(field).Int()
+	return val
+}
+
+// Bool
+func Bool(field, file string) bool {
+	val, _ := cfg.getKey(file).Key(field).Bool()
+	return val
 }
