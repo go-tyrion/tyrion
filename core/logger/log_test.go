@@ -10,7 +10,6 @@ import (
 func TestNormal(t *testing.T) {
 	logger := log.New(os.Stdout, "prefix ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	logger.Println("message")
-	TestLog()
 	// log.Panicln("message")
 	//log.Fatalln("message")
 }
