@@ -2,7 +2,6 @@ package log
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
@@ -42,8 +41,6 @@ func init() {
 type logger struct {
 	mu sync.Mutex
 
-	_logger *log.Logger
-
 	level LogLevel
 
 	rotateHourly bool
@@ -52,15 +49,17 @@ type logger struct {
 	fileName   string
 	fileSuffix string
 	fileHandle *os.File
+
+	formater Formater
 }
 
 func NewLogger() *logger {
 	return &logger{
-		_logger:      log.New(os.Stdout, "", log.LstdFlags),
 		level:        LDebug,
 		rotateHourly: false,
 		rotateDaily:  false,
 		fileHandle:   os.Stdout,
+		formater:     new(TextFormater),
 	}
 }
 
@@ -71,14 +70,16 @@ func (l *logger) SetLevel(level LogLevel) {
 func (l *logger) SetRotateHourly() {
 	l.rotateHourly = true
 	l.rotateDaily = false
+	l.fileSuffix = l.genSuffix()
 }
 
 func (l *logger) SetRotateDaily() {
 	l.rotateDaily = true
 	l.rotateHourly = false
+	l.fileSuffix = l.genSuffix()
 }
 
-func (l *logger) SetOutputByFileName(name string) (err error) {
+func (l *logger) SetOutputByName(name string) (err error) {
 	var h *os.File
 	h, err = os.OpenFile(name, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
@@ -86,10 +87,7 @@ func (l *logger) SetOutputByFileName(name string) (err error) {
 	}
 
 	l.fileName = name
-	l.fileSuffix = l.genSuffix()
 	l.fileHandle = h
-
-	l._logger.SetOutput(h)
 
 	return
 }
@@ -98,6 +96,9 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 	if l.level > level {
 		return
 	}
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	if err := l.rotate(); err != nil {
 		return
@@ -108,7 +109,12 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 	copy(msg[1:], v)
 	msg[len(v)+1] = ""
 
-	_ = l._logger.Output(4, fmt.Sprintln(msg...))
+	val, err := l.formater.Format(msg)
+	if err != nil {
+		return
+	}
+
+	l.fileHandle.Write(val)
 }
 
 func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
@@ -116,13 +122,21 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 		return
 	}
 
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	if err := l.rotate(); err != nil {
 		return
 	}
 
 	msg := "[" + levels[level] + "] " + fmt.Sprintf(f, v...)
 
-	_ = l._logger.Output(4, msg)
+	val, err := l.formater.Format(msg)
+	if err != nil {
+		return
+	}
+
+	l.fileHandle.Write(val)
 }
 
 func (l *logger) rotate() (err error) {
@@ -134,16 +148,13 @@ func (l *logger) rotate() (err error) {
 		return
 	}
 
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
 	newFileName := l.fileName + "." + l.fileSuffix
 	err = os.Rename(l.fileName, newFileName)
 	if err != nil {
 		return
 	}
 
-	return l.SetOutputByFileName(l.fileName)
+	return l.SetOutputByName(l.fileName)
 }
 
 func (l *logger) Debug(v ...interface{}) {
