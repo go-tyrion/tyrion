@@ -5,10 +5,11 @@ import (
 	"fmt"
 )
 
-type TextFormater struct {
+type TextFormatter struct {
+	prefix string
 }
 
-func (f *TextFormater) Format(v interface{}) (b []byte, err error) {
+func (f *TextFormatter) Format(v interface{}) (b []byte, err error) {
 	s, ok := v.(string)
 	if !ok {
 		return nil, fmt.Errorf("input must be string")

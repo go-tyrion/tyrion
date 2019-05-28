@@ -12,7 +12,10 @@ const (
 	SuffixFormatForDay  = "20060102"
 )
 
-type LogLevel int
+type (
+	LogLevel      int
+	LogRotateType string
+)
 
 const (
 	LDebug LogLevel = iota
@@ -21,6 +24,11 @@ const (
 	LError
 	LPanic
 	LFatal
+)
+
+const (
+	RotateHoury LogRotateType = "H"
+	RotateDaily LogRotateType = "D"
 )
 
 var levels = []string{
@@ -41,25 +49,21 @@ func init() {
 type logger struct {
 	mu sync.Mutex
 
-	level LogLevel
-
-	rotateHourly bool
-	rotateDaily  bool
+	level      LogLevel
+	rotateType LogRotateType
 
 	fileName   string
 	fileSuffix string
 	fileHandle *os.File
 
-	formater Formater
+	formatter Formatter
 }
 
 func NewLogger() *logger {
 	return &logger{
-		level:        LDebug,
-		rotateHourly: false,
-		rotateDaily:  false,
-		fileHandle:   os.Stdout,
-		formater:     new(TextFormater),
+		level:      LDebug,
+		fileHandle: os.Stdout,
+		formatter:  new(TextFormatter),
 	}
 }
 
@@ -68,14 +72,12 @@ func (l *logger) SetLevel(level LogLevel) {
 }
 
 func (l *logger) SetRotateHourly() {
-	l.rotateHourly = true
-	l.rotateDaily = false
+	l.rotateType = RotateHoury
 	l.fileSuffix = l.genSuffix()
 }
 
 func (l *logger) SetRotateDaily() {
-	l.rotateDaily = true
-	l.rotateHourly = false
+	l.rotateType = RotateDaily
 	l.fileSuffix = l.genSuffix()
 }
 
@@ -109,7 +111,7 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 	copy(msg[1:], v)
 	msg[len(v)+1] = ""
 
-	val, err := l.formater.Format(msg)
+	val, err := l.formatter.Format(msg)
 	if err != nil {
 		return
 	}
@@ -131,7 +133,7 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 
 	msg := "[" + levels[level] + "] " + fmt.Sprintf(f, v...)
 
-	val, err := l.formater.Format(msg)
+	val, err := l.formatter.Format(msg)
 	if err != nil {
 		return
 	}
@@ -140,7 +142,7 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 }
 
 func (l *logger) rotate() (err error) {
-	if !l.rotateDaily && !l.rotateHourly {
+	if l.rotateType == "" {
 		return
 	}
 
@@ -207,11 +209,14 @@ func (l *logger) Fatalf(f string, v ...interface{}) {
 	os.Exit(1)
 }
 
-func (l *logger) genSuffix() (suffix string) {
-	if l.rotateHourly {
+func (l *logger) genSuffix() string {
+	var suffix string
+
+	if l.rotateType == RotateHoury {
 		suffix = time.Now().Format(SuffixFormatForHour)
-	} else if l.rotateDaily {
+	} else if l.rotateType == RotateDaily {
 		suffix = time.Now().Format(SuffixFormatForDay)
 	}
-	return
+
+	return suffix
 }
