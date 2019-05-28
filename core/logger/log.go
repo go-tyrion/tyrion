@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -27,8 +28,9 @@ const (
 )
 
 const (
-	RotateHoury LogRotateType = "H"
-	RotateDaily LogRotateType = "D"
+	RotateNone   LogRotateType = ""
+	RotateHourly LogRotateType = "H"
+	RotateDaily  LogRotateType = "D"
 )
 
 var levels = []string{
@@ -49,20 +51,40 @@ func init() {
 type logger struct {
 	mu sync.Mutex
 
-	level      LogLevel
+	// 日志级别, 默认 "log.Debug"
+	level LogLevel
+
+	// 日志切割方式，支持按 "D"、"H"，即 "按天"、"按小时" 进行切割
+	// 默认不切割，可以通过 "log.SetRotateHourly()" 和 "log.SetRotateDaily()" 修改
+	// 只有当指定以文件方式输出生效
 	rotateType LogRotateType
 
-	fileName   string
-	fileSuffix string
-	fileHandle *os.File
+	// 文件名，以文件方式输出
+	// 文件后缀，当指定切割方式时生效
+	file, suffix string
 
+	// 前缀信息
+	prefix string
+
+	// 是否显示文件和执行方法
+	showCaller bool
+
+	// 输出句柄，默认以标准方式输出
+	out io.Writer
+
+	// 输出格式，支持 "text" 和 "json" 格式输出
 	formatter Formatter
 }
 
 func NewLogger() *logger {
 	return &logger{
 		level:      LDebug,
-		fileHandle: os.Stdout,
+		rotateType: RotateNone,
+		file:       "",
+		suffix:     "",
+		prefix:     "",
+		showCaller: false,
+		out:        os.Stdout,
 		formatter:  new(TextFormatter),
 	}
 }
@@ -71,14 +93,22 @@ func (l *logger) SetLevel(level LogLevel) {
 	l.level = level
 }
 
+func (l *logger) ShowCaller(show bool) {
+	l.showCaller = show
+}
+
+func (l *logger) SetPrefix(prefix string) {
+	l.prefix = prefix
+}
+
 func (l *logger) SetRotateHourly() {
-	l.rotateType = RotateHoury
-	l.fileSuffix = l.genSuffix()
+	l.rotateType = RotateHourly
+	l.suffix = l.genSuffix()
 }
 
 func (l *logger) SetRotateDaily() {
 	l.rotateType = RotateDaily
-	l.fileSuffix = l.genSuffix()
+	l.suffix = l.genSuffix()
 }
 
 func (l *logger) SetOutputByName(name string) (err error) {
@@ -88,8 +118,8 @@ func (l *logger) SetOutputByName(name string) (err error) {
 		return
 	}
 
-	l.fileName = name
-	l.fileHandle = h
+	l.file = name
+	l.out = h
 
 	return
 }
@@ -116,7 +146,7 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 		return
 	}
 
-	l.fileHandle.Write(val)
+	l.out.Write(val)
 }
 
 func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
@@ -138,7 +168,7 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 		return
 	}
 
-	l.fileHandle.Write(val)
+	l.out.Write(val)
 }
 
 func (l *logger) rotate() (err error) {
@@ -146,17 +176,17 @@ func (l *logger) rotate() (err error) {
 		return
 	}
 
-	if l.fileSuffix == l.genSuffix() {
+	if l.suffix == l.genSuffix() {
 		return
 	}
 
-	newFileName := l.fileName + "." + l.fileSuffix
-	err = os.Rename(l.fileName, newFileName)
+	newFileName := l.file + "." + l.suffix
+	err = os.Rename(l.file, newFileName)
 	if err != nil {
 		return
 	}
 
-	return l.SetOutputByName(l.fileName)
+	return l.SetOutputByName(l.file)
 }
 
 func (l *logger) Debug(v ...interface{}) {
@@ -212,7 +242,7 @@ func (l *logger) Fatalf(f string, v ...interface{}) {
 func (l *logger) genSuffix() string {
 	var suffix string
 
-	if l.rotateType == RotateHoury {
+	if l.rotateType == RotateHourly {
 		suffix = time.Now().Format(SuffixFormatForHour)
 	} else if l.rotateType == RotateDaily {
 		suffix = time.Now().Format(SuffixFormatForDay)

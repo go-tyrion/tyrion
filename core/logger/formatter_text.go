@@ -6,7 +6,13 @@ import (
 )
 
 type TextFormatter struct {
-	prefix string
+	logger *logger
+}
+
+func NewTextFormatter(logger *logger) Formatter {
+	return &TextFormatter{
+		logger: logger,
+	}
 }
 
 func (f *TextFormatter) Format(v interface{}) (b []byte, err error) {
