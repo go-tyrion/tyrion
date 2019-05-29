@@ -3,6 +3,7 @@ package log
 import (
 	"bytes"
 	"fmt"
+	"time"
 )
 
 type TextFormatter struct {
@@ -21,10 +22,17 @@ func (f *TextFormatter) Format(v interface{}) (b []byte, err error) {
 		return nil, fmt.Errorf("input must be string")
 	}
 
-	a := bytes.NewBufferString(s)
+	now := time.Now()
+
+	var text bytes.Buffer
+	text.WriteString(f.logger.prefix)
+	text.WriteString(now.Format(DateTimeFormat) + " ")
+	text.WriteString("[" + levels[f.logger.level] + "]: ")
+	text.WriteString(s)
+
 	if len(s) == 0 || s[len(s)-1] != '\n' {
-		a.WriteString("\n")
+		text.WriteString("\n")
 	}
 
-	return a.Bytes(), nil
+	return text.Bytes(), nil
 }

@@ -11,6 +11,8 @@ import (
 const (
 	SuffixFormatForHour = "2006010215"
 	SuffixFormatForDay  = "20060102"
+
+	DateTimeFormat = "2006-01-02 15:04:05.000"
 )
 
 type (
@@ -34,12 +36,12 @@ const (
 )
 
 var levels = []string{
-	"DEBUG",
-	"INFO",
-	"WARN",
-	"ERROR",
-	"PANIC",
-	"FATAL",
+	"debug",
+	"info",
+	"warn",
+	"error",
+	"panic",
+	"fatal",
 }
 
 var _log *logger
@@ -77,7 +79,7 @@ type logger struct {
 }
 
 func NewLogger() *logger {
-	return &logger{
+	l := &logger{
 		level:      LDebug,
 		rotateType: RotateNone,
 		file:       "",
@@ -85,8 +87,10 @@ func NewLogger() *logger {
 		prefix:     "",
 		showCaller: false,
 		out:        os.Stdout,
-		formatter:  new(TextFormatter),
 	}
+	l.formatter = NewTextFormatter(l)
+
+	return l
 }
 
 func (l *logger) SetLevel(level LogLevel) {
@@ -136,12 +140,9 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 		return
 	}
 
-	msg := make([]interface{}, len(v)+2)
-	msg[0] = "[" + levels[level] + "]"
-	copy(msg[1:], v)
-	msg[len(v)+1] = ""
+	text := fmt.Sprintln(v...)
 
-	val, err := l.formatter.Format(msg)
+	val, err := l.formatter.Format(text)
 	if err != nil {
 		return
 	}
