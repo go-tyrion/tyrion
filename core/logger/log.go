@@ -115,6 +115,14 @@ func (l *logger) SetRotateDaily() {
 	l.suffix = l.genSuffix()
 }
 
+func (l *logger) SetTextFormatter() {
+	l.formatter = NewTextFormatter(l)
+}
+
+func (l *logger) SetJsonFormatter() {
+	l.formatter = NewJsonFormatter(l)
+}
+
 func (l *logger) SetOutputByName(name string) (err error) {
 	var h *os.File
 	h, err = os.OpenFile(name, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -162,7 +170,7 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 		return
 	}
 
-	msg := "[" + levels[level] + "] " + fmt.Sprintf(f, v...)
+	msg := fmt.Sprintf(f, v...)
 
 	val, err := l.formatter.Format(level, msg)
 	if err != nil {
