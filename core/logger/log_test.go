@@ -18,6 +18,7 @@ func TestNormal(t *testing.T) {
 
 func TestQiNiuLog(t *testing.T) {
 	log2.Info("info1", "info2")
+	_log.Debug("debug1", "debug2")
 	_log.Info("info1", "info2")
 }
 

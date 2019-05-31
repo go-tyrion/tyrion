@@ -142,7 +142,7 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 
 	text := fmt.Sprintln(v...)
 
-	val, err := l.formatter.Format(text)
+	val, err := l.formatter.Format(level, text)
 	if err != nil {
 		return
 	}
@@ -164,7 +164,7 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 
 	msg := "[" + levels[level] + "] " + fmt.Sprintf(f, v...)
 
-	val, err := l.formatter.Format(msg)
+	val, err := l.formatter.Format(level, msg)
 	if err != nil {
 		return
 	}
