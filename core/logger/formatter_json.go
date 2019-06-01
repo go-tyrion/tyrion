@@ -18,7 +18,6 @@ func NewJsonFormatter(l *logger) *JsonFormatter {
 }
 
 func (f *JsonFormatter) Format(level LogLevel, v string) (b []byte, err error) {
-
 	things := make(map[string]interface{})
 
 	msgLength := len(v)
