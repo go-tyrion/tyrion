@@ -259,3 +259,80 @@ func (l *logger) genSuffix() string {
 
 	return suffix
 }
+
+// ------------------------------------------------------------
+func SetLevel(level LogLevel) {
+	_log.SetLevel(level)
+}
+
+func ShowCaller(show bool) {
+	_log.ShowCaller(show)
+}
+
+func SetRotateHourly() {
+	_log.SetRotateHourly()
+}
+
+func SetRotateDaily() {
+	_log.SetRotateDaily()
+}
+
+func SetTextFormatter() {
+	_log.SetTextFormatter()
+}
+
+func SetJsonFormatter() {
+	_log.SetJsonFormatter()
+}
+
+func SetOutputByName(name string) {
+	_log.SetOutputByName(name)
+}
+
+func Debug(v ...interface{}) {
+	_log.Debug(v...)
+}
+
+func Debugf(f string, v ...interface{}) {
+	_log.Debugf(f, v...)
+}
+
+func Info(v ...interface{}) {
+	_log.Info(v...)
+}
+
+func Infof(f string, v ...interface{}) {
+	_log.Infof(f, v...)
+}
+
+func Warn(v ...interface{}) {
+	_log.Warn(v...)
+}
+
+func Warnf(f string, v ...interface{}) {
+	_log.Warnf(f, v...)
+}
+
+func Error(v ...interface{}) {
+	_log.Error(v...)
+}
+
+func Errorf(f string, v ...interface{}) {
+	_log.Errorf(f, v...)
+}
+
+func Panic(v ...interface{}) {
+	_log.Panic(v...)
+}
+
+func Panicf(f string, v ...interface{}) {
+	_log.Panicf(f, v...)
+}
+
+func Fatal(v ...interface{}) {
+	_log.Fatal(v...)
+}
+
+func Fatalf(f string, v ...interface{}) {
+	_log.Fatalf(f, v...)
+}
