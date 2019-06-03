@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -71,7 +72,7 @@ type logger struct {
 	prefix string
 
 	// 是否显示文件和执行方法
-	showCaller bool
+	showFile bool
 
 	// 输出句柄，默认以标准方式输出
 	out io.Writer
@@ -95,8 +96,8 @@ func (l *logger) SetLevel(level LogLevel) {
 	l.level = level
 }
 
-func (l *logger) ShowCaller(show bool) {
-	l.showCaller = show
+func (l *logger) ShowFile() {
+	l.showFile = true
 }
 
 func (l *logger) SetPrefix(prefix string) {
@@ -130,22 +131,7 @@ func (l *logger) SetOutputByName(name string) {
 	l.file = name
 }
 
-func (l *logger) setOutput() {
-	var fileName string
-	if l.rotateType == "" {
-		fileName = filepath.Join(l.dir, l.file)
-	} else {
-		fileName = filepath.Join(l.dir, l.file) + "." + l.suffix
-	}
-	h, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	l.out = h
-}
-
-func (l *logger) log(level LogLevel, v ...interface{}) {
+func (l *logger) log(level LogLevel, dep int, v ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -159,7 +145,7 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 
 	text := fmt.Sprintln(v...)
 
-	val, err := l.formatter.Format(level, text)
+	val, err := l.formatter.Format(level, dep, text)
 	if err != nil {
 		return
 	}
@@ -167,7 +153,12 @@ func (l *logger) log(level LogLevel, v ...interface{}) {
 	l.out.Write(val)
 }
 
-func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
+func caller(dep int) {
+	_, f, line, _ := runtime.Caller(dep)
+	fmt.Println("caller:", f, line)
+}
+
+func (l *logger) logf(level LogLevel, dep int, f string, v ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -181,7 +172,7 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 
 	msg := fmt.Sprintf(f, v...)
 
-	val, err := l.formatter.Format(level, msg)
+	val, err := l.formatter.Format(level, dep, msg)
 	if err != nil {
 		return
 	}
@@ -195,78 +186,65 @@ func (l *logger) rotate() (err error) {
 	}
 
 	suffix := l.genSuffix()
-	if l.suffix == "" {
+	if l.suffix == "" || (l.suffix != suffix && l.rotateType != "") {
 		l.suffix = suffix
 		l.setOutput()
-
-		return
 	}
 
-	if l.rotateType == "" || l.suffix == suffix {
-		return
-	}
-
-	newFileName := l.file + "." + l.suffix
-	err = os.Rename(l.file, newFileName)
-	if err != nil {
-		return
-	}
-
-	l.setOutput()
 	return
 }
 
 func (l *logger) Debug(v ...interface{}) {
-	l.log(LDebug, v...)
+	l.log(LDebug, 4, v...)
 }
 
 func (l *logger) Debugf(f string, v ...interface{}) {
-	l.logf(LDebug, f, v...)
+	l.logf(LDebug, 4, f, v...)
 }
 
 func (l *logger) Info(v ...interface{}) {
-	l.log(LInfo, v...)
+	l.log(LInfo, 4, v...)
 }
 
 func (l *logger) Infof(f string, v ...interface{}) {
-	l.logf(LInfo, f, v...)
+	l.logf(LInfo, 4, f, v...)
 }
 
 func (l *logger) Warn(v ...interface{}) {
-	l.log(LWarn, v...)
+	l.log(LWarn, 4, v...)
 }
 
 func (l *logger) Warnf(f string, v ...interface{}) {
-	l.logf(LWarn, f, v...)
+	l.logf(LWarn, 4, f, v...)
 }
 
 func (l *logger) Error(v ...interface{}) {
-	l.log(LError, v...)
+	l.log(LError, 4, v...)
 }
 
 func (l *logger) Errorf(f string, v ...interface{}) {
-	l.logf(LError, f, v...)
+	l.logf(LError, 4, f, v...)
 }
 
 func (l *logger) Panic(v ...interface{}) {
 	msg := concat(v...)
-	l.log(LPanic, v...)
+	l.log(LPanic, 4, v...)
 	panic(msg)
 }
 
 func (l *logger) Panicf(f string, v ...interface{}) {
 	msg := concat(v...)
-	l.logf(LPanic, f, v...)
+	l.logf(LPanic, 4, f, v...)
 	panic(msg)
 }
 
 func (l *logger) Fatal(v ...interface{}) {
-	l.log(LFatal, v...)
+	l.log(LFatal, 4, v...)
 	os.Exit(1)
 }
 
 func (l *logger) Fatalf(f string, v ...interface{}) {
-	l.logf(LFatal, f, v...)
+	l.logf(LFatal, 4, f, v...)
 	os.Exit(1)
 }
 
@@ -290,13 +268,29 @@ func concat(msg ...interface{}) string {
 	return strings.Join(buf, " ")
 }
 
+func (l *logger) setOutput() {
+	var fileName string
+	if l.rotateType == "" {
+		fileName = filepath.Join(l.dir, l.file)
+	} else {
+		fileName = filepath.Join(l.dir, l.file) + "." + l.suffix
+	}
+
+	h, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	l.out = h
+}
+
 // ------------------------------------------------------------
 func SetLevel(level LogLevel) {
 	_log.SetLevel(level)
 }
 
-func ShowCaller(show bool) {
-	_log.ShowCaller(show)
+func ShowFile() {
+	_log.ShowFile()
 }
 
 func SetRotateHourly() {
