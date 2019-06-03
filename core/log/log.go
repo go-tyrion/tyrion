@@ -105,12 +105,10 @@ func (l *logger) SetPrefix(prefix string) {
 
 func (l *logger) SetRotateHourly() {
 	l.rotateType = RotateHourly
-	l.suffix = l.genSuffix()
 }
 
 func (l *logger) SetRotateDaily() {
 	l.rotateType = RotateDaily
-	l.suffix = l.genSuffix()
 }
 
 func (l *logger) SetTextFormatter() {
@@ -125,26 +123,26 @@ func (l *logger) SetOutputDir(dir string) {
 	l.dir = dir
 }
 
-func (l *logger) SetOutputByName(name string) (err error) {
+func (l *logger) SetOutputByName(name string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.file = name
-	l.suffix = l.genSuffix()
+}
 
-	var h *os.File
-	h, err = os.OpenFile(l.buildFile(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+func (l *logger) setOutput() {
+	var fileName string
+	if l.rotateType == "" {
+		fileName = filepath.Join(l.dir, l.file)
+	} else {
+		fileName = filepath.Join(l.dir, l.file) + "." + l.suffix
+	}
+	h, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		panic(err.Error())
 	}
 
 	l.out = h
-
-	return
-}
-
-func (l *logger) buildFile() string {
-	return filepath.Join(l.dir, l.file)
 }
 
 func (l *logger) log(level LogLevel, v ...interface{}) {
@@ -192,11 +190,19 @@ func (l *logger) logf(level LogLevel, f string, v ...interface{}) {
 }
 
 func (l *logger) rotate() (err error) {
-	if l.rotateType == "" {
+	if l.file == "" {
 		return
 	}
 
-	if l.suffix == l.genSuffix() {
+	suffix := l.genSuffix()
+	if l.suffix == "" {
+		l.suffix = suffix
+		l.setOutput()
+
+		return
+	}
+
+	if l.rotateType == "" || l.suffix == suffix {
 		return
 	}
 
@@ -206,7 +212,8 @@ func (l *logger) rotate() (err error) {
 		return
 	}
 
-	return l.SetOutputByName(l.file)
+	l.setOutput()
+	return
 }
 
 func (l *logger) Debug(v ...interface{}) {
@@ -306,6 +313,10 @@ func SetTextFormatter() {
 
 func SetJsonFormatter() {
 	_log.SetJsonFormatter()
+}
+
+func SetOutputDir(dir string) {
+	_log.SetOutputDir(dir)
 }
 
 func SetOutputByName(name string) {

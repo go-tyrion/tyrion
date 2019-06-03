@@ -27,9 +27,9 @@ func TestLogger_Info(t *testing.T) {
 	// _log.SetRotateHourly()
 
 	_log.SetPrefix("[Tyrion]")
-	_log.SetOutputDir("../log-dir/")
 	_log.SetOutputByName("demo.log")
 	_log.SetJsonFormatter()
+	_log.SetRotateHourly()
 
 	for i := 0; i < 10000; i++ {
 		_log.Info("this is info message, i:", i, "message2", "message3")
