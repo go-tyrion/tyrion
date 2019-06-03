@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -63,7 +65,7 @@ type logger struct {
 
 	// 文件名，以文件方式输出
 	// 文件后缀，当指定切割方式时生效
-	file, suffix string
+	dir, file, suffix string
 
 	// 前缀信息
 	prefix string
@@ -82,10 +84,6 @@ func NewLogger() *logger {
 	l := &logger{
 		level:      LDebug,
 		rotateType: RotateNone,
-		file:       "",
-		suffix:     "",
-		prefix:     "",
-		showCaller: false,
 		out:        os.Stdout,
 	}
 	l.formatter = NewTextFormatter(l)
@@ -123,17 +121,30 @@ func (l *logger) SetJsonFormatter() {
 	l.formatter = NewJsonFormatter(l)
 }
 
+func (l *logger) SetOutputDir(dir string) {
+	l.dir = dir
+}
+
 func (l *logger) SetOutputByName(name string) (err error) {
-	var h *os.File
-	h, err = os.OpenFile(name, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
-	if err != nil {
-		return
-	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	l.file = name
+	l.suffix = l.genSuffix()
+
+	var h *os.File
+	h, err = os.OpenFile(l.buildFile(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	l.out = h
 
 	return
+}
+
+func (l *logger) buildFile() string {
+	return filepath.Join(l.dir, l.file)
 }
 
 func (l *logger) log(level LogLevel, v ...interface{}) {
@@ -231,11 +242,15 @@ func (l *logger) Errorf(f string, v ...interface{}) {
 }
 
 func (l *logger) Panic(v ...interface{}) {
+	msg := concat(v...)
 	l.log(LPanic, v...)
+	panic(msg)
 }
 
 func (l *logger) Panicf(f string, v ...interface{}) {
+	msg := concat(v...)
 	l.logf(LPanic, f, v...)
+	panic(msg)
 }
 
 func (l *logger) Fatal(v ...interface{}) {
@@ -258,6 +273,14 @@ func (l *logger) genSuffix() string {
 	}
 
 	return suffix
+}
+
+func concat(msg ...interface{}) string {
+	buf := make([]string, 0, len(msg))
+	for _, m := range msg {
+		buf = append(buf, fmt.Sprintf("%v", m))
+	}
+	return strings.Join(buf, " ")
 }
 
 // ------------------------------------------------------------
