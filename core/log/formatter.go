@@ -32,12 +32,8 @@ func (f *TextFormatter) Format(level LogLevel, dep int, v string) (b []byte, err
 	text.WriteString(now.Format(DateTimeFormat) + " ")
 
 	if f.logger.showFile {
-		f.logger.mu.Unlock()
 		fileAndLine := getCaller(dep)
-		f.logger.mu.Lock()
-
 		text.WriteString(fileAndLine + " ")
-
 	}
 
 	text.WriteString("[" + levels[level] + "]: ")
@@ -74,9 +70,7 @@ func (f *JsonFormatter) Format(level LogLevel, dep int, v string) (b []byte, err
 	things["message"] = v
 
 	if f.logger.showFile {
-		f.logger.mu.Unlock()
 		things["file"] = getCaller(dep)
-		f.logger.mu.Lock()
 	}
 
 	thingsBuffer := &bytes.Buffer{}
@@ -90,6 +84,12 @@ func (f *JsonFormatter) Format(level LogLevel, dep int, v string) (b []byte, err
 }
 
 func getCaller(dep int) string {
-	_, file, line, _ := runtime.Caller(dep)
-	return file + ":" + strconv.Itoa(line)
+	file, line, ok, _ := "--", 0, true, "--"
+	_, file, line, ok = runtime.Caller(dep)
+	if ok {
+		// file = filepath.Base(file)
+		file += ":" + strconv.Itoa(line)
+	}
+
+	return file
 }

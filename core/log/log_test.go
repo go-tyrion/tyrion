@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestNormal(t *testing.T) {
@@ -16,8 +15,8 @@ func TestNormal(t *testing.T) {
 
 func TestQiNiuLog(t *testing.T) {
 	_logger := NewLogger()
-	_logger.ShowCaller(true)
-	_logger.Info("lhh0")
+	_logger.ShowFile()
+	_logger.Info("lhh00000")
 }
 
 func TestLogger_Info(t *testing.T) {
@@ -25,10 +24,10 @@ func TestLogger_Info(t *testing.T) {
 	_log.SetOutputByName("demo.log")
 	_log.SetJsonFormatter()
 	_log.SetRotateHourly()
-	_log.ShowCaller(true)
+	_log.ShowFile()
 
 	for i := 0; i < 10000; i++ {
 		_log.Info("this is info message, i:", i, "message2", "message3")
-		time.Sleep(time.Second * 1)
+		// time.Sleep(time.Second * 1)
 	}
 }

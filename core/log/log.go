@@ -3,9 +3,9 @@ package log
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -24,12 +24,12 @@ type (
 )
 
 const (
-	LDebug LogLevel = iota
-	LInfo
-	LWarn
-	LError
-	LPanic
-	LFatal
+	DEBUG LogLevel = iota
+	INFO
+	WARN
+	ERROR
+	PANIC
+	FATAL
 )
 
 const (
@@ -51,6 +51,7 @@ var _log *logger
 
 func init() {
 	_log = NewLogger()
+	log.Print()
 }
 
 type logger struct {
@@ -83,7 +84,7 @@ type logger struct {
 
 func NewLogger() *logger {
 	l := &logger{
-		level:      LDebug,
+		level:      DEBUG,
 		rotateType: RotateNone,
 		out:        os.Stdout,
 	}
@@ -121,6 +122,16 @@ func (l *logger) SetJsonFormatter() {
 }
 
 func (l *logger) SetOutputDir(dir string) {
+	if _, err := os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			if mkErr := os.Mkdir(dir, 0644); mkErr != nil {
+				panic(mkErr.Error())
+			}
+		} else {
+			panic(err.Error())
+		}
+	}
+
 	l.dir = dir
 }
 
@@ -136,26 +147,12 @@ func (l *logger) log(level LogLevel, dep int, v ...interface{}) {
 		return
 	}
 
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	if err := l.rotate(); err != nil {
-		return
-	}
-
-	text := fmt.Sprintln(v...)
-
-	val, err := l.formatter.Format(level, dep, text)
+	text, err := l.formatter.Format(level, dep, fmt.Sprintln(v...))
 	if err != nil {
 		return
 	}
 
-	l.out.Write(val)
-}
-
-func caller(dep int) {
-	_, f, line, _ := runtime.Caller(dep)
-	fmt.Println("caller:", f, line)
+	l.write(text)
 }
 
 func (l *logger) logf(level LogLevel, dep int, f string, v ...interface{}) {
@@ -163,30 +160,32 @@ func (l *logger) logf(level LogLevel, dep int, f string, v ...interface{}) {
 		return
 	}
 
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	if err := l.rotate(); err != nil {
-		return
-	}
-
-	msg := fmt.Sprintf(f, v...)
-
-	val, err := l.formatter.Format(level, dep, msg)
+	text, err := l.formatter.Format(level, dep, fmt.Sprintf(f, v...))
 	if err != nil {
 		return
 	}
 
-	l.out.Write(val)
+	l.write(text)
 }
 
-func (l *logger) rotate() (err error) {
+func (l *logger) write(text []byte) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.rotate()
+
+	if _, err := l.out.Write(text); err != nil {
+		fmt.Println("WErr:", err.Error())
+	}
+}
+
+func (l *logger) rotate() {
 	if l.file == "" {
 		return
 	}
 
 	suffix := l.genSuffix()
-	if l.suffix == "" || (l.suffix != suffix && l.rotateType != "") {
+	if l.suffix == "" || (l.suffix != suffix && l.rotateType != RotateNone) {
 		l.suffix = suffix
 		l.setOutput()
 	}
@@ -195,56 +194,56 @@ func (l *logger) rotate() (err error) {
 }
 
 func (l *logger) Debug(v ...interface{}) {
-	l.log(LDebug, 4, v...)
+	l.log(DEBUG, 4, v...)
 }
 
 func (l *logger) Debugf(f string, v ...interface{}) {
-	l.logf(LDebug, 4, f, v...)
+	l.logf(DEBUG, 4, f, v...)
 }
 
 func (l *logger) Info(v ...interface{}) {
-	l.log(LInfo, 4, v...)
+	l.log(INFO, 4, v...)
 }
 
 func (l *logger) Infof(f string, v ...interface{}) {
-	l.logf(LInfo, 4, f, v...)
+	l.logf(INFO, 4, f, v...)
 }
 
 func (l *logger) Warn(v ...interface{}) {
-	l.log(LWarn, 4, v...)
+	l.log(WARN, 4, v...)
 }
 
 func (l *logger) Warnf(f string, v ...interface{}) {
-	l.logf(LWarn, 4, f, v...)
+	l.logf(WARN, 4, f, v...)
 }
 
 func (l *logger) Error(v ...interface{}) {
-	l.log(LError, 4, v...)
+	l.log(ERROR, 4, v...)
 }
 
 func (l *logger) Errorf(f string, v ...interface{}) {
-	l.logf(LError, 4, f, v...)
+	l.logf(ERROR, 4, f, v...)
 }
 
 func (l *logger) Panic(v ...interface{}) {
 	msg := concat(v...)
-	l.log(LPanic, 4, v...)
+	l.log(PANIC, 4, v...)
 	panic(msg)
 }
 
 func (l *logger) Panicf(f string, v ...interface{}) {
 	msg := concat(v...)
-	l.logf(LPanic, 4, f, v...)
+	l.logf(PANIC, 4, f, v...)
 	panic(msg)
 }
 
 func (l *logger) Fatal(v ...interface{}) {
-	l.log(LFatal, 4, v...)
+	l.log(FATAL, 4, v...)
 	os.Exit(1)
 }
 
 func (l *logger) Fatalf(f string, v ...interface{}) {
-	l.logf(LFatal, 4, f, v...)
+	l.logf(FATAL, 4, f, v...)
 	os.Exit(1)
 }
 
