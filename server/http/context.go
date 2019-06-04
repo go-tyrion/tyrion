@@ -2,7 +2,7 @@ package http
 
 import (
 	"encoding/json"
-	"log"
+	"lib/core/log"
 	"net/http"
 )
 
@@ -70,7 +70,7 @@ func (c *Context) JSON(code int, v interface{}) {
 	var body []byte
 	var err error
 	if body, err = json.Marshal(v); err != nil {
-		c.httpServer.logger.Println(err)
+		c.httpServer.logger.Error(err)
 		return
 	}
 
@@ -127,5 +127,5 @@ func (c *Context) Error(err error) {
 	if err == nil {
 		return
 	}
-	c.Log().Println("Err:", err)
+	c.Log().Error("Err:", err)
 }

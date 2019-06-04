@@ -15,10 +15,10 @@ type Formatter interface {
 
 // TextFormatter 文本
 type TextFormatter struct {
-	logger *logger
+	logger *Logger
 }
 
-func NewTextFormatter(logger *logger) Formatter {
+func NewTextFormatter(logger *Logger) Formatter {
 	return &TextFormatter{
 		logger: logger,
 	}
@@ -48,10 +48,10 @@ func (f *TextFormatter) Format(level LogLevel, dep int, v string) (b []byte, err
 
 // JsonFormatter Json 格式
 type JsonFormatter struct {
-	logger *logger
+	logger *Logger
 }
 
-func NewJsonFormatter(l *logger) *JsonFormatter {
+func NewJsonFormatter(l *Logger) *JsonFormatter {
 	return &JsonFormatter{
 		logger: l,
 	}

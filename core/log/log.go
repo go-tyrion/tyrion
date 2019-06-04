@@ -47,14 +47,14 @@ var levels = []string{
 	"fatal",
 }
 
-var _log *logger
+var _log *Logger
 
 func init() {
 	_log = NewLogger()
 	log.Print()
 }
 
-type logger struct {
+type Logger struct {
 	mu sync.Mutex
 
 	// 日志级别, 默认 "log.Debug"
@@ -82,8 +82,8 @@ type logger struct {
 	formatter Formatter
 }
 
-func NewLogger() *logger {
-	l := &logger{
+func NewLogger() *Logger {
+	l := &Logger{
 		level:      DEBUG,
 		rotateType: RotateNone,
 		out:        os.Stdout,
@@ -93,35 +93,35 @@ func NewLogger() *logger {
 	return l
 }
 
-func (l *logger) SetLevel(level LogLevel) {
+func (l *Logger) SetLevel(level LogLevel) {
 	l.level = level
 }
 
-func (l *logger) ShowFile() {
+func (l *Logger) ShowFile() {
 	l.showFile = true
 }
 
-func (l *logger) SetPrefix(prefix string) {
+func (l *Logger) SetPrefix(prefix string) {
 	l.prefix = prefix
 }
 
-func (l *logger) SetRotateHourly() {
+func (l *Logger) SetRotateHourly() {
 	l.rotateType = RotateHourly
 }
 
-func (l *logger) SetRotateDaily() {
+func (l *Logger) SetRotateDaily() {
 	l.rotateType = RotateDaily
 }
 
-func (l *logger) SetTextFormatter() {
+func (l *Logger) SetTextFormatter() {
 	l.formatter = NewTextFormatter(l)
 }
 
-func (l *logger) SetJsonFormatter() {
+func (l *Logger) SetJsonFormatter() {
 	l.formatter = NewJsonFormatter(l)
 }
 
-func (l *logger) SetOutputDir(dir string) {
+func (l *Logger) SetOutputDir(dir string) {
 	if _, err := os.Stat(dir); err != nil {
 		if os.IsNotExist(err) {
 			if mkErr := os.Mkdir(dir, 0644); mkErr != nil {
@@ -135,14 +135,14 @@ func (l *logger) SetOutputDir(dir string) {
 	l.dir = dir
 }
 
-func (l *logger) SetOutputByName(name string) {
+func (l *Logger) SetOutputByName(name string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.file = name
 }
 
-func (l *logger) log(level LogLevel, dep int, v ...interface{}) {
+func (l *Logger) log(level LogLevel, dep int, v ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -155,7 +155,7 @@ func (l *logger) log(level LogLevel, dep int, v ...interface{}) {
 	l.write(text)
 }
 
-func (l *logger) logf(level LogLevel, dep int, f string, v ...interface{}) {
+func (l *Logger) logf(level LogLevel, dep int, f string, v ...interface{}) {
 	if l.level > level {
 		return
 	}
@@ -168,7 +168,7 @@ func (l *logger) logf(level LogLevel, dep int, f string, v ...interface{}) {
 	l.write(text)
 }
 
-func (l *logger) write(text []byte) {
+func (l *Logger) write(text []byte) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -179,7 +179,7 @@ func (l *logger) write(text []byte) {
 	}
 }
 
-func (l *logger) rotate() {
+func (l *Logger) rotate() {
 	if l.file == "" {
 		return
 	}
@@ -193,61 +193,61 @@ func (l *logger) rotate() {
 	return
 }
 
-func (l *logger) Debug(v ...interface{}) {
+func (l *Logger) Debug(v ...interface{}) {
 	l.log(DEBUG, 4, v...)
 }
 
-func (l *logger) Debugf(f string, v ...interface{}) {
+func (l *Logger) Debugf(f string, v ...interface{}) {
 	l.logf(DEBUG, 4, f, v...)
 }
 
-func (l *logger) Info(v ...interface{}) {
+func (l *Logger) Info(v ...interface{}) {
 	l.log(INFO, 4, v...)
 }
 
-func (l *logger) Infof(f string, v ...interface{}) {
+func (l *Logger) Infof(f string, v ...interface{}) {
 	l.logf(INFO, 4, f, v...)
 }
 
-func (l *logger) Warn(v ...interface{}) {
+func (l *Logger) Warn(v ...interface{}) {
 	l.log(WARN, 4, v...)
 }
 
-func (l *logger) Warnf(f string, v ...interface{}) {
+func (l *Logger) Warnf(f string, v ...interface{}) {
 	l.logf(WARN, 4, f, v...)
 }
 
-func (l *logger) Error(v ...interface{}) {
+func (l *Logger) Error(v ...interface{}) {
 	l.log(ERROR, 4, v...)
 }
 
-func (l *logger) Errorf(f string, v ...interface{}) {
+func (l *Logger) Errorf(f string, v ...interface{}) {
 	l.logf(ERROR, 4, f, v...)
 }
 
-func (l *logger) Panic(v ...interface{}) {
+func (l *Logger) Panic(v ...interface{}) {
 	msg := concat(v...)
 	l.log(PANIC, 4, v...)
 	panic(msg)
 }
 
-func (l *logger) Panicf(f string, v ...interface{}) {
+func (l *Logger) Panicf(f string, v ...interface{}) {
 	msg := concat(v...)
 	l.logf(PANIC, 4, f, v...)
 	panic(msg)
 }
 
-func (l *logger) Fatal(v ...interface{}) {
+func (l *Logger) Fatal(v ...interface{}) {
 	l.log(FATAL, 4, v...)
 	os.Exit(1)
 }
 
-func (l *logger) Fatalf(f string, v ...interface{}) {
+func (l *Logger) Fatalf(f string, v ...interface{}) {
 	l.logf(FATAL, 4, f, v...)
 	os.Exit(1)
 }
 
-func (l *logger) genSuffix() string {
+func (l *Logger) genSuffix() string {
 	var suffix string
 
 	if l.rotateType == RotateHourly {
@@ -267,7 +267,7 @@ func concat(msg ...interface{}) string {
 	return strings.Join(buf, " ")
 }
 
-func (l *logger) setOutput() {
+func (l *Logger) setOutput() {
 	var fileName string
 	if l.rotateType == "" {
 		fileName = filepath.Join(l.dir, l.file)

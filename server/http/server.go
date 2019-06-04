@@ -3,9 +3,8 @@ package http
 import (
 	"errors"
 	"fmt"
-	"log"
+	"lib/core/log"
 	"net/http"
-	"os"
 	"reflect"
 	"sync"
 )
@@ -27,7 +26,7 @@ func New() *HttpServer {
 	s.router = NewRouter(s)
 	s.server = new(http.Server)
 	s.opts = new(Options)
-	s.logger = log.New(os.Stdout, "[Tyrion] ", log.LstdFlags)
+	s.logger = log.NewLogger()
 	s.pool = sync.Pool{
 		New: func() interface{} {
 			return NewContext(nil, nil, s)

@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/go-ini/ini"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -33,7 +34,7 @@ func (c *Config) getKey(file string) *ini.Section {
 		return k
 	}
 
-	f, err := ini.Load(BaseConfigPath + file)
+	f, err := ini.Load(filepath.Join(BaseConfigPath, file))
 	if err != nil {
 		panic(err)
 	}

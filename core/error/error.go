@@ -5,6 +5,7 @@ type ErrorCode int
 type Error struct {
 	code    ErrorCode
 	message string
+	cause   error
 	file    string
 	line    int
 }

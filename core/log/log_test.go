@@ -19,6 +19,18 @@ func TestQiNiuLog(t *testing.T) {
 	_logger.Info("lhh00000")
 }
 
+func BenchmarkInfo(b *testing.B) {
+	_log.SetPrefix("[Tyrion]")
+	_log.SetOutputByName("demo.log")
+	_log.SetJsonFormatter()
+	_log.SetRotateHourly()
+	_log.ShowFile()
+
+	for i := 0; i < b.N; i++ {
+		_log.Info("this is info message, i:", i, "message2", "message3")
+	}
+}
+
 func TestLogger_Info(t *testing.T) {
 	_log.SetPrefix("[Tyrion]")
 	_log.SetOutputByName("demo.log")
