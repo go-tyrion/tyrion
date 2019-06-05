@@ -21,7 +21,7 @@ type HttpServer struct {
 	maxPostMemory int64
 }
 
-func New() *HttpServer {
+func NewHttpServer() *HttpServer {
 	s := new(HttpServer)
 	s.router = NewRouter(s)
 	s.server = new(http.Server)
@@ -38,7 +38,7 @@ func New() *HttpServer {
 
 // 使用 Default 默认配置
 func Default() *HttpServer {
-	s := New()
+	s := NewHttpServer()
 	s.Init(s.opts.DefaultOpts())
 	return s
 }
