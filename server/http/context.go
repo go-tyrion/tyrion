@@ -2,7 +2,7 @@ package http
 
 import (
 	"encoding/json"
-	"lib/core/log"
+	"lib/log"
 	"net/http"
 )
 
