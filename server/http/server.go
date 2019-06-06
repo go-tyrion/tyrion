@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"fmt"
+	"lib/core"
 	"lib/log"
 	"net/http"
 	"reflect"
@@ -23,6 +24,7 @@ type HttpServer struct {
 
 func NewHttpServer() *HttpServer {
 	s := new(HttpServer)
+	s.debug = core.Debug()
 	s.router = NewRouter(s)
 	s.server = new(http.Server)
 	s.opts = new(Options)
