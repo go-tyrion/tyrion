@@ -1,9 +1,6 @@
 package http
 
 import (
-	"errors"
-	"fmt"
-	"lib/core"
 	"lib/log"
 	"net/http"
 	"reflect"
@@ -13,42 +10,31 @@ import (
 type HandleFunc func(c *Context)
 
 type HttpServer struct {
-	debug         bool
-	opts          *Options
-	router        *Router
-	server        *http.Server
-	logger        *log.Logger
-	pool          sync.Pool
-	maxPostMemory int64
+	opts   *Options
+	router *Router
+	server *http.Server
+	logger *log.Logger
+	pool   sync.Pool
 }
 
 func NewHttpServer() *HttpServer {
-	s := new(HttpServer)
-	s.debug = core.Debug()
-	s.router = NewRouter(s)
-	s.server = new(http.Server)
-	s.opts = new(Options)
-	s.logger = log.NewLogger()
-	s.pool = sync.Pool{
-		New: func() interface{} {
-			return NewContext(nil, nil, s)
-		},
+	server := &HttpServer{
+		logger: log.NewLogger(),
+		server: new(http.Server),
+		opts:   new(Options),
 	}
-	s.maxPostMemory = DefaultMaxPostMemory
-	return s
-}
+	server.router = newRouter(server)
+	server.pool.New = func() interface{} {
+		return newContext(server)
+	}
 
-// 使用 Default 默认配置
-func Default() *HttpServer {
-	s := NewHttpServer()
-	s.Init(s.opts.DefaultOpts())
-	return s
+	return server
 }
 
 // 通过 Init 方法初始化
 func (s *HttpServer) Init(opts *Options) {
 	s.opts = s.opts.ResetOpts(opts)
-	s.server.Addr = fmt.Sprintf("%s:%d", s.opts.IP, s.opts.Port)
+	s.server.Addr = opts.Addr
 	s.server.ReadTimeout = s.opts.ReadTimeout
 	s.server.WriteTimeout = s.opts.WriteTimeout
 }
@@ -62,24 +48,27 @@ func (s *HttpServer) Log() *log.Logger {
 	return s.logger
 }
 
-func (s *HttpServer) GetMaxPostMemory() int64 {
-	return s.maxPostMemory
+// Run http server
+func (server *HttpServer) Run() error {
+	server.setServerOpts()
+	return server.server.ListenAndServe()
 }
 
-// http
-func (s *HttpServer) Run() error {
-	s.server.Handler = s
-	return s.server.ListenAndServe()
-}
-
-// https
-func (s *HttpServer) RunTLS() error {
-	if s.opts.TLSCertFile == "" || s.opts.TLSKeyFile == "" {
-		return errors.New("invalid tls config")
+// Run https server
+func (server *HttpServer) RunTLS() error {
+	if server.opts.TLSCertFile == "" || server.opts.TLSKeyFile == "" {
+		panic("invalid tls config")
 	}
 
-	s.server.Handler = s
-	return s.server.ListenAndServeTLS(s.opts.TLSCertFile, s.opts.TLSKeyFile)
+	server.setServerOpts()
+	return server.server.ListenAndServeTLS(server.opts.TLSCertFile, server.opts.TLSKeyFile)
+}
+
+func (server *HttpServer) setServerOpts() {
+	server.server.WriteTimeout = server.opts.WriteTimeout
+	server.server.ReadTimeout = server.opts.ReadTimeout
+	server.server.Handler = server
+	// server.server.TLSConfig = tls.NewConfig("", "")
 }
 
 // ------------

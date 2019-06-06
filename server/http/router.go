@@ -54,7 +54,7 @@ type Router struct {
 	handles    map[int]map[string][]HandleFunc
 }
 
-func NewRouter(server *HttpServer) *Router {
+func newRouter(server *HttpServer) *Router {
 	r := new(Router)
 	r.httpServer = server
 	r.handles = make(map[int]map[string][]HandleFunc)

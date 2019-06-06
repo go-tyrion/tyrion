@@ -19,13 +19,12 @@ type Context struct {
 	step       int
 }
 
-func NewContext(w http.ResponseWriter, r *http.Request, app *HttpServer) *Context {
-	c := new(Context)
-	c.httpServer = app
-	c.req = r
-	c.resp = w
-	c.handles = make([]HandleFunc, 0)
-	return c
+func newContext(server *HttpServer) *Context {
+	return &Context{
+		httpServer: server,
+		handles:    make([]HandleFunc, 0),
+		step:       0,
+	}
 }
 
 func (c *Context) reset(w http.ResponseWriter, r *http.Request) *Context {
@@ -82,7 +81,7 @@ func (c *Context) JSON(code int, v interface{}) {
 
 func (c *Context) PostArray(key string) ([]string, bool) {
 	req := c.req
-	if err := req.ParseMultipartForm(c.httpServer.GetMaxPostMemory()); err != nil {
+	if err := req.ParseMultipartForm(c.httpServer.opts.GetMaxPostMemory()); err != nil {
 		if err != http.ErrNotMultipart {
 			c.Error(err)
 		}
