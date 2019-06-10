@@ -50,11 +50,11 @@ var (
 )
 
 type Router struct {
-	httpServer *HttpServer
+	httpServer *HttpService
 	handles    map[int]map[string][]HandleFunc
 }
 
-func newRouter(server *HttpServer) *Router {
+func newRouter(server *HttpService) *Router {
 	r := new(Router)
 	r.httpServer = server
 	r.handles = make(map[int]map[string][]HandleFunc)

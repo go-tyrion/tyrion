@@ -1,6 +1,7 @@
 package http
 
 import (
+	"lib/core"
 	"lib/log"
 	"net/http"
 	"reflect"
@@ -9,7 +10,9 @@ import (
 
 type HandleFunc func(c *Context)
 
-type HttpServer struct {
+type HttpService struct {
+	core.App
+
 	opts   *Options
 	router *Router
 	server *http.Server
@@ -17,8 +20,8 @@ type HttpServer struct {
 	pool   sync.Pool
 }
 
-func NewHttpServer() *HttpServer {
-	server := &HttpServer{
+func NewHttpService() *HttpService {
+	server := &HttpService{
 		logger: log.NewLogger(),
 		server: new(http.Server),
 		opts:   new(Options),
@@ -28,11 +31,13 @@ func NewHttpServer() *HttpServer {
 		return newContext(server)
 	}
 
+	server.App.Init()
+
 	return server
 }
 
 // 通过 Init 方法初始化
-func (s *HttpServer) Init(opts *Options) {
+func (s *HttpService) Init(opts *Options) {
 	s.opts = s.opts.ResetOpts(opts)
 	s.server.Addr = opts.Addr
 	s.server.ReadTimeout = s.opts.ReadTimeout
@@ -40,22 +45,22 @@ func (s *HttpServer) Init(opts *Options) {
 }
 
 // 通过配置文件初始化
-func (s *HttpServer) InitByConfig(confFile string) {
+func (s *HttpService) InitByConfig(confFile string) {
 	s.Init(s.opts.ResolveOptsByConfigFile(confFile))
 }
 
-func (s *HttpServer) Log() *log.Logger {
+func (s *HttpService) Log() *log.Logger {
 	return s.logger
 }
 
 // Run http server
-func (server *HttpServer) Run() error {
+func (server *HttpService) Run() error {
 	server.setServerOpts()
 	return server.server.ListenAndServe()
 }
 
 // Run https server
-func (server *HttpServer) RunTLS() error {
+func (server *HttpService) RunTLS() error {
 	if server.opts.TLSCertFile == "" || server.opts.TLSKeyFile == "" {
 		panic("invalid tls config")
 	}
@@ -64,7 +69,7 @@ func (server *HttpServer) RunTLS() error {
 	return server.server.ListenAndServeTLS(server.opts.TLSCertFile, server.opts.TLSKeyFile)
 }
 
-func (server *HttpServer) setServerOpts() {
+func (server *HttpService) setServerOpts() {
 	server.server.WriteTimeout = server.opts.WriteTimeout
 	server.server.ReadTimeout = server.opts.ReadTimeout
 	server.server.Handler = server
@@ -73,7 +78,7 @@ func (server *HttpServer) setServerOpts() {
 
 // ------------
 // 类型 bisinessServer模式
-func (s *HttpServer) AddLogic(prefix string, logic Logic) {
+func (s *HttpService) AddLogic(prefix string, logic Logic) {
 	t := reflect.TypeOf(logic)
 	v := reflect.ValueOf(logic)
 	for i := 0; i < t.NumMethod(); i++ {
@@ -86,7 +91,7 @@ func (s *HttpServer) AddLogic(prefix string, logic Logic) {
 	}
 }
 
-func (s *HttpServer) wrapLogic(v reflect.Value) HandleFunc {
+func (s *HttpService) wrapLogic(v reflect.Value) HandleFunc {
 	return func(c *Context) {
 		v.Call([]reflect.Value{reflect.ValueOf(c)})
 		c.Next()
@@ -94,30 +99,30 @@ func (s *HttpServer) wrapLogic(v reflect.Value) HandleFunc {
 }
 
 // 传统方式
-func (s *HttpServer) Any(pattern string, h ...HandleFunc) {
+func (s *HttpService) Any(pattern string, h ...HandleFunc) {
 	s.add(http.MethodGet, pattern, h)
 	s.add(http.MethodPost, pattern, h)
 	s.add(http.MethodPut, pattern, h)
 	s.add(http.MethodDelete, pattern, h)
 }
 
-func (s *HttpServer) Get(pattern string, h ...HandleFunc) {
+func (s *HttpService) Get(pattern string, h ...HandleFunc) {
 	s.add(http.MethodGet, pattern, h)
 }
 
-func (s *HttpServer) Post(pattern string, h ...HandleFunc) {
+func (s *HttpService) Post(pattern string, h ...HandleFunc) {
 	s.add(http.MethodPost, pattern, h)
 }
 
-func (s *HttpServer) Put(pattern string, h ...HandleFunc) {
+func (s *HttpService) Put(pattern string, h ...HandleFunc) {
 	s.add(http.MethodPut, pattern, h)
 }
 
-func (s *HttpServer) Delete(pattern string, h ...HandleFunc) {
+func (s *HttpService) Delete(pattern string, h ...HandleFunc) {
 	s.add(http.MethodDelete, pattern, h)
 }
 
-func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {
+func (s *HttpService) add(method string, pattern string, handles []HandleFunc) {
 	wrapHandles := make([]HandleFunc, 0, len(handles))
 	for _, h := range handles {
 		wrapHandles = append(wrapHandles, WrapHandlerFunc(h))
@@ -125,7 +130,7 @@ func (s *HttpServer) add(method string, pattern string, handles []HandleFunc) {
 	s.router.Register(method, pattern, wrapHandles)
 }
 
-func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *HttpService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := s.pool.Get().(*Context)
 	c.reset(w, r)
 
@@ -146,7 +151,7 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.Next()
 }
 
-func (s *HttpServer) Stop() error {
+func (s *HttpService) Stop() error {
 	return s.server.Close()
 }
 

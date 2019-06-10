@@ -2,11 +2,11 @@ package config
 
 import (
 	"lib/config/ini"
-	"lib/core"
+	"os"
 )
 
 func init() {
-	ini.SetEnv(core.Env())
+	ini.SetEnv(os.Getenv("env"))
 }
 
 // String get value for string
@@ -21,6 +21,11 @@ func Strings(field, file, delim string) []string {
 // Int get value for string
 func Int(field, file string) int {
 	val, _ := ini.GetKey(file, field).Int()
+	return val
+}
+
+func Int64(field, file string) int64 {
+	val, _ := ini.GetKey(file, field).Int64()
 	return val
 }
 

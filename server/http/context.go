@@ -12,14 +12,14 @@ const (
 )
 
 type Context struct {
-	httpServer *HttpServer
+	httpServer *HttpService
 	req        *http.Request
 	resp       http.ResponseWriter
 	handles    []HandleFunc
 	step       int
 }
 
-func newContext(server *HttpServer) *Context {
+func newContext(server *HttpService) *Context {
 	return &Context{
 		httpServer: server,
 		handles:    make([]HandleFunc, 0),
