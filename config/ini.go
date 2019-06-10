@@ -2,6 +2,8 @@ package config
 
 import (
 	"github.com/go-ini/ini"
+	"lib/config/proto"
+	"lib/helper"
 	"os"
 	"path/filepath"
 	"sync"
@@ -31,15 +33,21 @@ type Config struct {
 }
 
 func (c *Config) init() {
-	env := c.getFile("app").Section(c.section).Key("env").String()
-	if env != "" {
-		c.section = env
+	app := new(proto.AppConfig)
+	if err := c.Resolve("app", app); err != nil {
+		panic(err)
+	}
+
+	if app.Env != "" {
+		c.section = app.Env
 	} else {
 		c.section = "prod"
 	}
 
-	c.section = env
+	c.section = app.Env
+
 	_ = os.Setenv("env", c.section)
+	_ = os.Setenv("debug", helper.Bool2String(app.Debug))
 }
 
 // 将配置与数据结构映射
@@ -51,25 +59,19 @@ func (c *Config) Resolve(file string, p interface{}) error {
 
 	cfg.NameMapper = ini.TitleUnderscore
 
-	newSection, _ := cfg.NewSection(file)
-	// default keys
-	defaultKeys := cfg.Section(ini.DefaultSection).KeyStrings()
-	for _, key := range defaultKeys {
-		_, _ = newSection.NewKey(key, cfg.Section(ini.DefaultSection).Key(key).Value())
-	}
-
+	defaultSection := cfg.Section(ini.DefaultSection)
 	// env keys
 	envKeys := cfg.Section(c.section).KeyStrings()
 	for _, key := range envKeys {
 		value := cfg.Section(c.section).Key(key).Value()
-		if newSection.HasKey(key) {
-			newSection.Key(key).SetValue(value)
+		if defaultSection.HasKey(key) {
+			defaultSection.Key(key).SetValue(value)
 		} else {
-			_, _ = newSection.NewKey(key, value)
+			_, _ = defaultSection.NewKey(key, value)
 		}
 	}
 
-	return newSection.MapTo(p)
+	return defaultSection.MapTo(p)
 }
 
 func (c *Config) getFile(file string) *ini.File {
@@ -101,11 +103,15 @@ func (c *Config) GetKey(file string, field string) *ini.Key {
 }
 
 func getFullPath(file string) string {
+	wishedExt := ".ini"
+
 	ext := filepath.Ext(file)
-	if ext == "" {
-		file += ".ini"
-	} else if ext != "ini" {
-		panic("unsupported config file")
+	if ext != wishedExt {
+		if ext != "" {
+			panic("unsupported config file, ext:" + ext)
+		} else {
+			file += wishedExt
+		}
 	}
 
 	return filepath.Join(BaseConfigPath, file)

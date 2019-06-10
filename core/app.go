@@ -5,14 +5,12 @@ import (
 	"lib/config/proto"
 )
 
-const DefaultAppConfigFileName = "app.ini"
-
 type App struct {
 	proto.AppConfig
 }
 
 func (app *App) Init() {
-	err := config.Resolve(DefaultAppConfigFileName, &app.AppConfig)
+	err := config.Resolve(config.DefaultAppConfigFile, &app.AppConfig)
 	if err != nil {
 		panic(app)
 	}

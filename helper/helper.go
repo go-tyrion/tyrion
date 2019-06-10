@@ -1,4 +1,4 @@
-package util
+package helper
 
 import (
 	"unicode"
@@ -18,4 +18,12 @@ func LCFirst(str string) string {
 		return string(unicode.ToLower(v)) + str[i+1:]
 	}
 	return ""
+}
+
+func Bool2String(b bool) string {
+	if b {
+		return "true"
+	} else {
+		return "false"
+	}
 }

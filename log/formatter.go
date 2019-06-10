@@ -31,12 +31,15 @@ func (f *TextFormatter) Format(level LogLevel, dep int, v string) (b []byte, err
 	text.WriteString(f.logger.prefix)
 	text.WriteString(now.Format(DateTimeFormat) + " ")
 
-	if f.logger.showFile {
+	if f.logger.showCaller {
 		fileAndLine := getCaller(dep)
 		text.WriteString(fileAndLine + " ")
 	}
 
-	text.WriteString("[" + levels[level] + "]: ")
+	if level != PRINT {
+		text.WriteString("[" + levels[level] + "]: ")
+	}
+
 	text.WriteString(v)
 
 	if len(v) == 0 || v[len(v)-1] != '\n' {
@@ -66,10 +69,13 @@ func (f *JsonFormatter) Format(level LogLevel, dep int, v string) (b []byte, err
 	}
 
 	things["time"] = time.Now().Format(DateTimeFormat)
-	things["level"] = levels[level]
 	things["message"] = v
 
-	if f.logger.showFile {
+	if level != PRINT {
+		things["level"] = levels[level]
+	}
+
+	if f.logger.showCaller {
 		things["file"] = getCaller(dep)
 	}
 

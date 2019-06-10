@@ -4,6 +4,7 @@ type HttpConfig struct {
 	ServiceName     string
 	Addr            string
 	AccessLog       bool
+	AccessLogDir    string
 	AccessLogRotate string
 	ReadTimeoutMs   int64
 	WriteTimeoutMs  int64

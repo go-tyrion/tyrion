@@ -1,9 +1,17 @@
 package http
 
 import (
+	"lib/config"
 	"lib/config/proto"
 	"time"
 )
+
+func newOptions(file string) *Options {
+	opts := new(Options)
+	opts.Init(file)
+
+	return opts
+}
 
 type Options struct {
 	proto.HttpConfig
@@ -11,6 +19,13 @@ type Options struct {
 	ReadTimeout         time.Duration
 	WriteTimeout        time.Duration
 	IgnorePathLastSlash bool // 忽略路由后面的斜线
+}
+
+func (opts *Options) Init(file string) {
+	err := config.Resolve(file, &opts.HttpConfig)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (o *Options) DefaultOpts() *Options {

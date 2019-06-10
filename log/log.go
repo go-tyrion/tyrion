@@ -30,6 +30,7 @@ const (
 	ERROR
 	PANIC
 	FATAL
+	PRINT
 )
 
 const (
@@ -45,6 +46,7 @@ var levels = []string{
 	"error",
 	"panic",
 	"fatal",
+	"print",
 }
 
 var _log *Logger
@@ -73,7 +75,7 @@ type Logger struct {
 	prefix string
 
 	// 是否显示文件和执行方法
-	showFile bool
+	showCaller bool
 
 	// 输出句柄，默认以标准方式输出
 	out io.Writer
@@ -97,8 +99,8 @@ func (l *Logger) SetLevel(level LogLevel) {
 	l.level = level
 }
 
-func (l *Logger) ShowFile() {
-	l.showFile = true
+func (l *Logger) ShowCaller() {
+	l.showCaller = true
 }
 
 func (l *Logger) SetPrefix(prefix string) {
@@ -247,6 +249,14 @@ func (l *Logger) Fatalf(f string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func (l *Logger) Print(v ...interface{}) {
+	l.log(PRINT, 4, v...)
+}
+
+func (l *Logger) Printf(f string, v ...interface{}) {
+	l.logf(PRINT, 4, f, v...)
+}
+
 func (l *Logger) genSuffix() string {
 	var suffix string
 
@@ -288,8 +298,8 @@ func SetLevel(level LogLevel) {
 	_log.SetLevel(level)
 }
 
-func ShowFile() {
-	_log.ShowFile()
+func ShowCaller() {
+	_log.ShowCaller()
 }
 
 func SetRotateHourly() {
@@ -362,4 +372,12 @@ func Fatal(v ...interface{}) {
 
 func Fatalf(f string, v ...interface{}) {
 	_log.Fatalf(f, v...)
+}
+
+func Print(v ...interface{}) {
+	_log.Print(v...)
+}
+
+func Printf(f string, v ...interface{}) {
+	_log.Printf(f, v...)
 }

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"lib/config"
 	"lib/core"
 	"lib/log"
@@ -15,47 +14,62 @@ type HandleFunc func(c *Context)
 type HttpService struct {
 	core.App
 
-	opts   *Options
-	router *Router
-	server *http.Server
-	logger *log.Logger
-	pool   sync.Pool
+	opts         *Options
+	router       *Router
+	server       *http.Server
+	logger       *log.Logger
+	accessLogger *log.Logger
+	pool         sync.Pool
 }
 
 func NewHttpService() *HttpService {
 	service := &HttpService{
-		logger: log.NewLogger(),
-		server: new(http.Server),
-		opts:   new(Options),
+		logger:       log.NewLogger(),
+		accessLogger: log.NewLogger(),
+		server:       new(http.Server),
+		opts:         newOptions(config.DefaultHttpConfigFile),
 	}
 	service.router = newRouter(service)
 	service.pool.New = func() interface{} {
 		return newContext(service)
 	}
 
-	service.App.Init()
-
-	err := config.Resolve("http", &service.opts.HttpConfig)
-	if err != nil {
-		fmt.Println("err:", err)
-	}
-
-	fmt.Println("conf", service.opts.HttpConfig)
+	service.init()
 
 	return service
 }
 
 // 通过 Init 方法初始化
-func (s *HttpService) Init(opts *Options) {
-	s.opts = s.opts.ResetOpts(opts)
-	s.server.Addr = opts.Addr
-	s.server.ReadTimeout = s.opts.ReadTimeout
-	s.server.WriteTimeout = s.opts.WriteTimeout
+func (service *HttpService) init() {
+	service.App.Init()
+	service.initLog()
+}
+
+func (service *HttpService) initLog() {
+	if service.opts.AccessLog {
+		logger := log.NewLogger()
+
+		if service.opts.AccessLogDir != "" {
+			logger.SetOutputDir(service.opts.AccessLogDir)
+			logger.SetOutputByName("access.log")
+
+			switch service.opts.AccessLogRotate {
+			case "D", "d", "day", "daily":
+				logger.SetRotateDaily()
+			case "H", "h", "hour", "hourly":
+				logger.SetRotateHourly()
+			default:
+				logger.SetRotateHourly()
+			}
+		}
+
+		service.accessLogger = logger
+	}
 }
 
 // 通过配置文件初始化
 func (s *HttpService) InitByConfig(confFile string) {
-	s.Init(s.opts.ResolveOptsByConfigFile(confFile))
+
 }
 
 func (s *HttpService) Log() *log.Logger {
@@ -79,10 +93,10 @@ func (service *HttpService) RunTLS() error {
 }
 
 func (service *HttpService) setServerOpts() {
+	service.server.Addr = service.opts.Addr
 	service.server.WriteTimeout = service.opts.WriteTimeout
 	service.server.ReadTimeout = service.opts.ReadTimeout
 	service.server.Handler = service
-	// server.server.TLSConfig = tls.NewConfig("", "")
 }
 
 // ------------
@@ -143,7 +157,13 @@ func (s *HttpService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := s.pool.Get().(*Context)
 	c.reset(w, r)
 
-	defer s.pool.Put(c)
+	defer func() {
+		s.pool.Put(c)
+
+		if s.opts.AccessLog {
+			s.accessLogger.Print(r.Method, r.URL.RawQuery, r.URL.RequestURI(), r.RemoteAddr)
+		}
+	}()
 
 	if _, ok := HttpMethods[r.Method]; !ok {
 		c.handles = append(c.handles, catchHandles(405))
