@@ -1,9 +1,8 @@
 package core
 
 import (
-	"lib/config/ini"
+	"lib/config"
 	"lib/config/proto"
-	"os"
 )
 
 const DefaultAppConfigFileName = "app.ini"
@@ -13,10 +12,8 @@ type App struct {
 }
 
 func (app *App) Init() {
-	err := ini.MapTo(DefaultAppConfigFileName, &app.AppConfig)
+	err := config.Resolve(DefaultAppConfigFileName, &app.AppConfig)
 	if err != nil {
 		panic(app)
 	}
-
-	_ = os.Setenv("env", app.Env)
 }

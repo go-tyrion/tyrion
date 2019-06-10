@@ -1,6 +1,8 @@
 package http
 
 import (
+	"fmt"
+	"lib/config"
 	"lib/core"
 	"lib/log"
 	"net/http"
@@ -21,19 +23,26 @@ type HttpService struct {
 }
 
 func NewHttpService() *HttpService {
-	server := &HttpService{
+	service := &HttpService{
 		logger: log.NewLogger(),
 		server: new(http.Server),
 		opts:   new(Options),
 	}
-	server.router = newRouter(server)
-	server.pool.New = func() interface{} {
-		return newContext(server)
+	service.router = newRouter(service)
+	service.pool.New = func() interface{} {
+		return newContext(service)
 	}
 
-	server.App.Init()
+	service.App.Init()
 
-	return server
+	err := config.Resolve("http", &service.opts.HttpConfig)
+	if err != nil {
+		fmt.Println("err:", err)
+	}
+
+	fmt.Println("conf", service.opts.HttpConfig)
+
+	return service
 }
 
 // 通过 Init 方法初始化
@@ -54,25 +63,25 @@ func (s *HttpService) Log() *log.Logger {
 }
 
 // Run http server
-func (server *HttpService) Run() error {
-	server.setServerOpts()
-	return server.server.ListenAndServe()
+func (service *HttpService) Run() error {
+	service.setServerOpts()
+	return service.server.ListenAndServe()
 }
 
 // Run https server
-func (server *HttpService) RunTLS() error {
-	if server.opts.TLSCertFile == "" || server.opts.TLSKeyFile == "" {
+func (service *HttpService) RunTLS() error {
+	if service.opts.HttpsCertFile == "" || service.opts.HttpsKeyFile == "" {
 		panic("invalid tls config")
 	}
 
-	server.setServerOpts()
-	return server.server.ListenAndServeTLS(server.opts.TLSCertFile, server.opts.TLSKeyFile)
+	service.setServerOpts()
+	return service.server.ListenAndServeTLS(service.opts.HttpsCertFile, service.opts.HttpsKeyFile)
 }
 
-func (server *HttpService) setServerOpts() {
-	server.server.WriteTimeout = server.opts.WriteTimeout
-	server.server.ReadTimeout = server.opts.ReadTimeout
-	server.server.Handler = server
+func (service *HttpService) setServerOpts() {
+	service.server.WriteTimeout = service.opts.WriteTimeout
+	service.server.ReadTimeout = service.opts.ReadTimeout
+	service.server.Handler = service
 	// server.server.TLSConfig = tls.NewConfig("", "")
 }
 

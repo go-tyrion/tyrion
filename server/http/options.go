@@ -1,14 +1,15 @@
 package http
 
-import "time"
+import (
+	"lib/config/proto"
+	"time"
+)
 
 type Options struct {
-	Addr                string
+	proto.HttpConfig
+
 	ReadTimeout         time.Duration
 	WriteTimeout        time.Duration
-	TLSCertFile         string
-	TLSKeyFile          string
-	MaxPostMemory       int64
 	IgnorePathLastSlash bool // 忽略路由后面的斜线
 }
 
@@ -29,15 +30,11 @@ func (o *Options) ResetOpts(opts *Options) *Options {
 		opts.WriteTimeout = time.Duration(30) * time.Second
 	}
 
-	if opts.MaxPostMemory <= 0 {
-		opts.MaxPostMemory = 30 << 20
-	}
-
 	return opts
 }
 
 func (opt *Options) GetMaxPostMemory() int64 {
-	return opt.MaxPostMemory
+	return 0
 }
 
 func (o *Options) ResolveOptsByConfigFile(name string) *Options {
