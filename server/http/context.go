@@ -3,7 +3,9 @@ package http
 import (
 	"encoding/json"
 	"lib/log"
+	"net"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -35,6 +37,36 @@ func (c *Context) reset(w http.ResponseWriter, r *http.Request) *Context {
 	return c
 }
 
+func (c *Context) handleHTTPRequest() {
+	var status int
+	defer func() {
+		if c.httpServer.opts.AccessLog {
+			c.httpServer.accessLogger.Print(
+				c.req.Method,
+				status,
+				c.req.URL.RequestURI(),
+				c.IP())
+		}
+	}()
+
+	if _, ok := HttpMethods[c.req.Method]; !ok {
+		status = 405
+		c.handles = append(c.handles, catchHandles(status))
+		return
+	}
+
+	handles := c.httpServer.router.Get(c.req.Method, c.req.URL.Path)
+	if handles == nil {
+		status = 404
+		c.handles = append(c.handles, catchHandles(status))
+	} else {
+		status = 200
+		c.handles = handles
+	}
+
+	c.Next()
+}
+
 func (c *Context) Next() {
 	if c.step >= len(c.handles) {
 		return
@@ -52,6 +84,31 @@ func (c *Context) Log() *log.Logger {
 
 func (c *Context) Break() {
 	c.step = len(c.handles)
+}
+
+func (c *Context) IP() string {
+	if true {
+		clientIP := c.GetHeader("X-Forwarded-For")
+		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
+		if clientIP == "" {
+			clientIP = strings.TrimSpace(c.GetHeader("X-Real-Ip"))
+		}
+		if clientIP != "" {
+			return clientIP
+		}
+	}
+
+	if true {
+		if addr := c.GetHeader("X-Appengine-Remote-Addr"); addr != "" {
+			return addr
+		}
+	}
+
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.req.RemoteAddr)); err == nil {
+		return ip
+	}
+
+	return ""
 }
 
 func (c *Context) String(code int, text string) {

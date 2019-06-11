@@ -157,27 +157,9 @@ func (s *HttpService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := s.pool.Get().(*Context)
 	c.reset(w, r)
 
-	defer func() {
-		s.pool.Put(c)
+	defer s.pool.Put(c)
 
-		if s.opts.AccessLog {
-			s.accessLogger.Print(r.Method, r.URL.RawQuery, r.URL.RequestURI(), r.RemoteAddr)
-		}
-	}()
-
-	if _, ok := HttpMethods[r.Method]; !ok {
-		c.handles = append(c.handles, catchHandles(405))
-		return
-	}
-
-	handles := s.router.Get(r.Method, r.URL.Path)
-	if handles == nil {
-		c.handles = append(c.handles, catchHandles(404))
-	} else {
-		c.handles = handles
-	}
-
-	c.Next()
+	c.handleHTTPRequest()
 }
 
 func (s *HttpService) Stop() error {
